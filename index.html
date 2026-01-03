@@ -2,26 +2,29 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Telegram Mini App</title>
+  <title>My Telegram Mini App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Telegram SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
     :root {
-      --bg: var(--tg-theme-bg-color, #f5f5f5);
-      --text: var(--tg-theme-text-color, #222);
-      --hint: var(--tg-theme-hint-color, #777);
-      --button: var(--tg-theme-button-color, #4f46e5);
-      --button-text: var(--tg-theme-button-text-color, #fff);
+      --text: #ffffff;
+      --hint: #cccccc;
+      --button: #6d5cff;
     }
 
     body {
       margin: 0;
+      min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
       color: var(--text);
+
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 80, 80, 0.45), transparent 40%),
+        radial-gradient(circle at 80% 30%, rgba(100, 120, 255, 0.45), transparent 45%),
+        radial-gradient(circle at 50% 80%, rgba(180, 80, 255, 0.45), transparent 40%),
+        #0b0b12;
     }
 
     .container {
@@ -31,11 +34,14 @@
     }
 
     .card {
-      background: rgba(255,255,255,0.08);
-      border-radius: 16px;
-      padding: 20px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: 20px;
+      padding: 24px;
       text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.15);
     }
 
     .avatar {
@@ -43,8 +49,8 @@
       height: 96px;
       border-radius: 50%;
       object-fit: cover;
-      margin: 0 auto 16px;
-      background: #ccc;
+      margin-bottom: 16px;
+      background: #555;
     }
 
     h1 {
@@ -54,28 +60,28 @@
 
     .username {
       color: var(--hint);
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
     .info {
       text-align: left;
-      margin-top: 16px;
       font-size: 15px;
+      margin-top: 12px;
     }
 
     .info div {
       margin-bottom: 8px;
     }
 
-    .btn {
+    button {
       margin-top: 20px;
       width: 100%;
-      padding: 12px;
-      border-radius: 12px;
+      padding: 14px;
+      border-radius: 14px;
       border: none;
       font-size: 16px;
       background: var(--button);
-      color: var(--button-text);
+      color: white;
     }
   </style>
 </head>
@@ -84,21 +90,21 @@
 <div class="container">
   <div class="card">
     <img id="avatar" class="avatar" />
-    <h1 id="name">Загрузка...</h1>
+    <h1 id="name">Загрузка…</h1>
     <div id="username" class="username"></div>
 
     <div class="info">
       <div><strong>ID:</strong> <span id="id"></span></div>
-      <div><strong>Открыто:</strong> Mini App</div>
+      <div><strong>Статус:</strong> Mini App открыта</div>
     </div>
 
-    <button class="btn" onclick="Telegram.WebApp.close()">Закрыть</button>
+    <button onclick="Telegram.WebApp.close()">Закрыть</button>
   </div>
 </div>
 
 <script>
   const tg = Telegram.WebApp;
-  tg.expand(); // раскрыть на всю высоту
+  tg.expand();
 
   const user = tg.initDataUnsafe.user;
 
@@ -117,7 +123,7 @@
       document.getElementById('avatar').style.display = 'none';
     }
   } else {
-    document.getElementById('name').innerText = 'Пользователь не определён';
+    document.getElementById('name').innerText = 'Пользователь не найден';
   }
 </script>
 
