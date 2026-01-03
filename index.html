@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Clicker</title>
+  <title>Clicker Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -21,16 +21,23 @@
     .top {
       padding: 16px;
       display: flex;
-      justify-content: flex-end;
-      font-size: 18px;
+      justify-content: space-between;
+      font-size: 16px;
       font-weight: bold;
     }
 
-    .main {
+    .screen {
       flex: 1;
-      display: flex;
+      display: none;
       justify-content: center;
       align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .screen.active {
+      display: flex;
+      flex-direction: column;
     }
 
     .coin {
@@ -45,6 +52,7 @@
       font-size: 48px;
       cursor: pointer;
       user-select: none;
+      margin-top: 20px;
       transition: transform 0.1s;
     }
 
@@ -52,16 +60,41 @@
       transform: scale(0.9);
     }
 
+    .card {
+      background: rgba(255,255,255,0.12);
+      padding: 20px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 320px;
+      margin-top: 20px;
+    }
+
+    button {
+      margin-top: 12px;
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      font-size: 16px;
+      background: #6d5cff;
+      color: white;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+    }
+
     .bottom {
       display: flex;
       justify-content: space-around;
       padding: 12px 0;
       background: rgba(0,0,0,0.4);
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .tab {
       opacity: 0.6;
+      cursor: pointer;
     }
 
     .tab.active {
@@ -73,18 +106,40 @@
 <body>
 
 <div class="top">
-  💰 <span id="balance">0</span>
+  <div>⚡ За клик: <span id="perClick">1</span></div>
+  <div>💰 <span id="balance">0</span></div>
 </div>
 
-<div class="main">
+<!-- ГЛАВНАЯ -->
+<div class="screen active" id="home">
   <div class="coin" id="coin">🪙</div>
 </div>
 
+<!-- ПРОКАЧКА -->
+<div class="screen" id="upgrade">
+  <div class="card">
+    <h3>⚡ Прокачка</h3>
+    <p>Монет за клик: <b id="upgradeValue">1</b></p>
+    <p>Цена: <b id="upgradePrice">100</b> 💰</p>
+    <button id="buyUpgrade">Купить улучшение</button>
+  </div>
+</div>
+
+<!-- ЗАДАНИЯ -->
+<div class="screen" id="tasks">
+  <p>🎯 Задания появятся скоро</p>
+</div>
+
+<!-- МАГАЗИН -->
+<div class="screen" id="shop">
+  <p>🏙 Магазин появится скоро</p>
+</div>
+
 <div class="bottom">
-  <div class="tab active">🪙 Главная</div>
-  <div class="tab">⚡ Прокачка</div>
-  <div class="tab">🎯 Задания</div>
-  <div class="tab">🏙 Магазин</div>
+  <div class="tab active" data-screen="home">🪙 Главная</div>
+  <div class="tab" data-screen="upgrade">⚡ Прокачка</div>
+  <div class="tab" data-screen="tasks">🎯 Задания</div>
+  <div class="tab" data-screen="shop">🏙 Магазин</div>
 </div>
 
 <script>
@@ -92,21 +147,55 @@
   tg.expand();
 
   let balance = Number(localStorage.getItem('balance')) || 0;
+  let perClick = Number(localStorage.getItem('perClick')) || 1;
+  let upgradePrice = Number(localStorage.getItem('upgradePrice')) || 100;
 
   const balanceEl = document.getElementById('balance');
+  const perClickEl = document.getElementById('perClick');
   const coinEl = document.getElementById('coin');
+  const buyBtn = document.getElementById('buyUpgrade');
 
-  function updateBalance() {
-    balanceEl.innerText = balance;
+  function save() {
     localStorage.setItem('balance', balance);
+    localStorage.setItem('perClick', perClick);
+    localStorage.setItem('upgradePrice', upgradePrice);
+  }
+
+  function updateUI() {
+    balanceEl.innerText = balance;
+    perClickEl.innerText = perClick;
+    document.getElementById('upgradeValue').innerText = perClick;
+    document.getElementById('upgradePrice').innerText = upgradePrice;
+    buyBtn.disabled = balance < upgradePrice;
   }
 
   coinEl.onclick = () => {
-    balance += 1;
-    updateBalance();
+    balance += perClick;
+    save();
+    updateUI();
   };
 
-  updateBalance();
+  buyBtn.onclick = () => {
+    if (balance >= upgradePrice) {
+      balance -= upgradePrice;
+      perClick += 1;
+      upgradePrice = Math.floor(upgradePrice * 1.7);
+      save();
+      updateUI();
+    }
+  };
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.screen).classList.add('active');
+    };
+  });
+
+  updateUI();
 </script>
 
 </body>
