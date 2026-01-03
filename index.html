@@ -2,129 +2,111 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>My Telegram Mini App</title>
+  <title>Clicker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
-    :root {
-      --text: #ffffff;
-      --hint: #cccccc;
-      --button: #6d5cff;
-    }
-
     body {
       margin: 0;
-      min-height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--text);
-
-      background:
-        radial-gradient(circle at 20% 20%, rgba(255, 80, 80, 0.45), transparent 40%),
-        radial-gradient(circle at 80% 30%, rgba(100, 120, 255, 0.45), transparent 45%),
-        radial-gradient(circle at 50% 80%, rgba(180, 80, 255, 0.45), transparent 40%),
-        #0b0b12;
-    }
-
-    .container {
-      padding: 20px;
-      max-width: 420px;
-      margin: 0 auto;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      border-radius: 20px;
-      padding: 24px;
-      text-align: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-      border: 1px solid rgba(255,255,255,0.15);
-    }
-
-    .avatar {
-      width: 96px;
-      height: 96px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin-bottom: 16px;
-      background: #555;
-    }
-
-    h1 {
-      margin: 8px 0;
-      font-size: 22px;
-    }
-
-    .username {
-      color: var(--hint);
-      margin-bottom: 16px;
-    }
-
-    .info {
-      text-align: left;
-      font-size: 15px;
-      margin-top: 12px;
-    }
-
-    .info div {
-      margin-bottom: 8px;
-    }
-
-    button {
-      margin-top: 20px;
-      width: 100%;
-      padding: 14px;
-      border-radius: 14px;
-      border: none;
-      font-size: 16px;
-      background: var(--button);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI";
+      background: radial-gradient(circle at top, #ff6a6a, #6a5cff, #0b0b12);
       color: white;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top {
+      padding: 16px;
+      display: flex;
+      justify-content: flex-end;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .coin {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle at top, #ffd700, #ff9f00);
+      box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 48px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s;
+    }
+
+    .coin:active {
+      transform: scale(0.9);
+    }
+
+    .bottom {
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 0;
+      background: rgba(0,0,0,0.4);
+      font-size: 14px;
+    }
+
+    .tab {
+      opacity: 0.6;
+    }
+
+    .tab.active {
+      opacity: 1;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <div class="card">
-    <img id="avatar" class="avatar" />
-    <h1 id="name">Загрузка…</h1>
-    <div id="username" class="username"></div>
+<div class="top">
+  💰 <span id="balance">0</span>
+</div>
 
-    <div class="info">
-      <div><strong>ID:</strong> <span id="id"></span></div>
-      <div><strong>Статус:</strong> Mini App открыта</div>
-    </div>
+<div class="main">
+  <div class="coin" id="coin">🪙</div>
+</div>
 
-    <button onclick="Telegram.WebApp.close()">Закрыть</button>
-  </div>
+<div class="bottom">
+  <div class="tab active">🪙 Главная</div>
+  <div class="tab">⚡ Прокачка</div>
+  <div class="tab">🎯 Задания</div>
+  <div class="tab">🏙 Магазин</div>
 </div>
 
 <script>
   const tg = Telegram.WebApp;
   tg.expand();
 
-  const user = tg.initDataUnsafe.user;
+  let balance = Number(localStorage.getItem('balance')) || 0;
 
-  if (user) {
-    document.getElementById('name').innerText =
-      user.first_name + (user.last_name ? ' ' + user.last_name : '');
+  const balanceEl = document.getElementById('balance');
+  const coinEl = document.getElementById('coin');
 
-    document.getElementById('username').innerText =
-      user.username ? '@' + user.username : '';
-
-    document.getElementById('id').innerText = user.id;
-
-    if (user.photo_url) {
-      document.getElementById('avatar').src = user.photo_url;
-    } else {
-      document.getElementById('avatar').style.display = 'none';
-    }
-  } else {
-    document.getElementById('name').innerText = 'Пользователь не найден';
+  function updateBalance() {
+    balanceEl.innerText = balance;
+    localStorage.setItem('balance', balance);
   }
+
+  coinEl.onclick = () => {
+    balance += 1;
+    updateBalance();
+  };
+
+  updateBalance();
 </script>
 
 </body>
