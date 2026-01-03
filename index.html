@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Моя первая Mini App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 16px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Привет 👋</h1>
+  <p id="user"></p>
+
+  <button onclick="showUser()">Показать пользователя</button>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+
+    function showUser() {
+      if (tg.initDataUnsafe?.user) {
+        document.getElementById('user').innerText =
+          'Ты: ' + tg.initDataUnsafe.user.first_name;
+      } else {
+        document.getElementById('user').innerText =
+          'Пользователь не определён';
+      }
+    }
+  </script>
+
+</body>
+</html>
