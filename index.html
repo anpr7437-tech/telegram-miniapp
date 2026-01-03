@@ -119,7 +119,8 @@
 <div class="screen" id="upgrade">
   <div class="card">
     <h3>⚡ Прокачка</h3>
-    <p>Монет за клик: <b id="upgradeValue">1</b></p>
+    <p>Текущий уровень: <b id="currentValue">1</b></p>
+    <p>После покупки: <b id="nextValue">2</b></p>
     <p>Цена: <b id="upgradePrice">100</b> 💰</p>
     <button id="buyUpgrade">Купить улучшение</button>
   </div>
@@ -164,8 +165,11 @@
   function updateUI() {
     balanceEl.innerText = balance;
     perClickEl.innerText = perClick;
-    document.getElementById('upgradeValue').innerText = perClick;
+
+    document.getElementById('currentValue').innerText = perClick;
+    document.getElementById('nextValue').innerText = perClick + 1;
     document.getElementById('upgradePrice').innerText = upgradePrice;
+
     buyBtn.disabled = balance < upgradePrice;
   }
 
