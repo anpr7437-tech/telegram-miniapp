@@ -2,73 +2,46 @@
 const video = document.getElementById('video');
 const startBtn = document.getElementById('start');
 const stopBtn = document.getElementById('stop');
-const repsEl = document.getElementById('reps');
 const statusEl = document.getElementById('status');
+const repsEl = document.getElementById('reps');
 
 // ===== СОСТОЯНИЕ =====
 let stream = null;
 let camera = null;
 let active = false;
-let reps = 0;
-
-// для подсчёта
-let baseY = null;   // положение головы стоя
-let state = 'up';   // up | down
 
 // ===== MEDIAPIPE =====
 const pose = new Pose({
-  locateFile: file =>
-    https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}
+  locateFile: f => https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}
 });
 
 pose.setOptions({
   modelComplexity: 0,
   smoothLandmarks: true,
-  minDetectionConfidence: 0.6,
-  minTrackingConfidence: 0.6
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
 });
 
-// ===== ОБРАБОТКА КАДРА =====
-pose.onResults(results => {
-  if (!active || !results.poseLandmarks) return;
+// ===== ГЛАВНОЕ: ПРОВЕРКА =====
+pose.onResults(res => {
+  if (!active) return;
 
-  // НОС = голова
-  const nose = results.poseLandmarks[0];
-
-  // первый кадр — запоминаем положение стоя
-  if (baseY === null) {
-    baseY = nose.y;
-    statusEl.innerText = 'Стой ровно. Начинай приседать';
+  if (!res.poseLandmarks) {
+    statusEl.innerText = 'MediaPipe: человек НЕ найден';
     return;
   }
 
-  const diff = nose.y - baseY;
+  // НОС
+  const nose = res.poseLandmarks[0];
 
-  // показываем движение (чтобы ты ВИДЕЛ)
-  statusEl.innerText = Движение головы: ${diff.toFixed(2)};
-
-  // ВНИЗ
-  if (diff > 0.08 && state === 'up') {
-    state = 'down';
-  }
-
-  // ВВЕРХ = ЗАСЧИТАЛИ
-  if (diff < 0.03 && state === 'down') {
-    reps++;
-    repsEl.innerText = Повторы: ${reps};
-    state = 'up';
-  }
+  statusEl.innerText =
+    MediaPipe РАБОТАЕТ ✅ | Нос: x=${nose.x.toFixed(2)} y=${nose.y.toFixed(2)};
 });
 
-// ===== НАЧАТЬ ПОДХОД =====
+// ===== СТАРТ =====
 startBtn.onclick = async () => {
-  reps = 0;
-  repsEl.innerText = 'Повторы: 0';
-  baseY = null;
-  state = 'up';
-  active = true;
-
   statusEl.innerText = 'Запуск камеры...';
+  active = true;
 
   stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: 'user' }
@@ -91,14 +64,14 @@ startBtn.onclick = async () => {
   stopBtn.disabled = false;
 };
 
-// ===== ЗАВЕРШИТЬ ПОДХОД =====
+// ===== СТОП =====
 stopBtn.onclick = () => {
   active = false;
 
   if (camera) camera.stop();
   if (stream) stream.getTracks().forEach(t => t.stop());
 
-  statusEl.innerText = Готово. Повторы: ${reps};
+  statusEl.innerText = 'Остановлено';
   startBtn.disabled = false;
   stopBtn.disabled = true;
 };
