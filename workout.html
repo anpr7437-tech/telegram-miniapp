@@ -10,38 +10,67 @@
       margin: 0;
       background: black;
       color: white;
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       text-align: center;
     }
+
+    h2 {
+      margin-top: 16px;
+    }
+
     video {
       width: 100%;
       max-height: 60vh;
       background: #111;
+
+      /* 🔥 ИСПРАВЛЯЕМ ЗЕРКАЛО */
+      transform: scaleX(-1);
     }
+
     button {
+      width: 80%;
       padding: 14px;
       margin: 10px;
       font-size: 16px;
-      width: 80%;
+      border-radius: 10px;
+      border: none;
+    }
+
+    #start {
+      background: #2ecc71;
+      color: black;
+    }
+
+    #stop {
+      background: #e74c3c;
+      color: black;
+    }
+
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      opacity: 0.8;
     }
   </style>
 </head>
 <body>
 
-<h2>🏋️ Приседания</h2>
+  <h2>🏋️ Приседания</h2>
 
-<!-- ВАЖНО: muted + playsinline -->
-<video
-  id="video"
-  muted
-  playsinline
-></video>
+  <!-- ВАЖНО: muted + playsinline для iPhone -->
+  <video
+    id="video"
+    muted
+    playsinline
+  ></video>
 
-<p id="status">Ожидание</p>
+  <p id="status">Ожидание</p>
 
-<button id="start">▶ Начать подход</button>
-<button id="stop" disabled>⏹ Завершить подход</button>
+  <button id="start">▶ Начать подход</button>
+  <button id="stop" disabled>⏹ Завершить подход</button>
 
-<script src="workout.js?v=1001"></script>
+  <!-- анти-кеш -->
+  <script src="workout.js?v=2000"></script>
+
 </body>
 </html>
