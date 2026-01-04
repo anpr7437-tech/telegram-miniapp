@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Приседания v6</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    video {
+      width: 100%;
+      max-height: 55vh;
+      background: #111;
+      transform: scaleX(-1);
+    }
+
+    #count {
+      font-size: 48px;
+      margin-top: 10px;
+    }
+
+    #status {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+
+    button {
+      width: 85%;
+      padding: 16px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+      background: #2ecc71;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🏋️ Приседания</h2>
+
+  <video id="video" muted playsinline></video>
+
+  <div id="count">0</div>
+  <div id="status">Ожидание</div>
+
+  <button id="start">▶ Начать</button>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    const video = document.getElementById('video');
+    const startBtn = document.getElementById('start');
+    const countEl = document.getElementById('count');
+    const statusEl = document.getElementById('status');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let lastFrame = null;
+    let active = false;
+    let reps = 0;
+
+    let values = [];
+    const MAX_VALUES = 15;
+
+    let phase = 'up';
+    let minMove = Infinity;
+    let maxMove = 0;
+
+    let DOWN_THRESHOLD = null;
+    let UP_THRESHOLD = null;
+
+    let stage = 'idle';
+
+    function frameDiff(a, b) {
+      let diff = 0;
+      for (let i = 0; i < a.data.length; i += 4) {
+        diff += Math.abs(a.data[i] - b.data[i]);
+      }
+      return diff / a.data.length;
+    }
+
+    function loop() {
+      if (!active) return;
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+
+      const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      if (lastFrame) {
+        const diff = frameDiff(frame, lastFrame);
+
+        values.push(diff);
+        if (values.length > MAX_VALUES) values.shift();
+
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+
+        if (stage === 'calibrate') {
+          minMove = Math.min(minMove, avg);
+          maxMove = Math.max(maxMove, avg);
+        }
+
+        if (stage === 'count') {
+          if (phase === 'up' && avg > DOWN_THRESHOLD) {
+            phase = 'down';
+            statusEl.innerText = '⬇ Вниз';
+          }
+
+          if (phase === 'down' && avg < UP_THRESHOLD) {
+            phase = 'up';
+            reps++;
+            countEl.innerText = reps;
+            statusEl.innerText = '⬆ Вверх';
+          }
+        }
+      }
+
+      lastFrame = frame;
+      setTimeout(() => requestAnimationFrame(loop), 200);
+    }
+
+    startBtn.onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' }
+      });
+
+      video.srcObject = stream;
+      await video.play();
+
+      reps = 0;
+      phase = 'up';
+      minMove = Infinity;
+      maxMove = 0;
+      DOWN_THRESHOLD = null;
+      UP_THRESHOLD = null;
+      values = [];
+      lastFrame = null;
+
+      countEl.innerText = '0';
+      statusEl.innerText = 'Отойди и встань ровно (5 сек)';
+      stage = 'prepare';
+
+      active = true;
+      loop();
+
+      setTimeout(() => {
+        statusEl.innerText = 'Замри (2 сек)';
+        stage = 'still';
+      }, 5000);
+
+      setTimeout(() => {
+        statusEl.innerText = 'Сделай 1 медленный присед';
+        stage = 'calibrate';
+      }, 7000);
+
+      setTimeout(() => {
+        DOWN_THRESHOLD = minMove + (maxMove - minMove) * 0.7;
+        UP_THRESHOLD = minMove + (maxMove - minMove) * 0.3;
+        statusEl.innerText = 'Считаем приседания';
+        stage = 'count';
+      }, 12000);
+    };
+  </script>
+
+</body>
+</html>
