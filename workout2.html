@@ -2,13 +2,22 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>JS TEST</title>
+  <title>INLINE JS TEST</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 
-  <h1>ЕСЛИ ТЫ ЭТО ВИДИШЬ — HTML ОБНОВИЛСЯ</h1>
+  <h1>INLINE JS TEST</h1>
+  <button id="btn">НАЖМИ</button>
 
-  <script src="workout.js?v=9999"></script>
+  <script>
+    alert('INLINE JS РАБОТАЕТ');
+
+    document.getElementById('btn').onclick = () => {
+      alert('КНОПКА РАБОТАЕТ');
+      document.body.style.background = 'green';
+    };
+  </script>
+
 </body>
 </html>
