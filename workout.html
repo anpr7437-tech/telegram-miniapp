@@ -5,10 +5,6 @@
   <title>Тренировка</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- MediaPipe -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-
   <style>
     body {
       margin: 0;
@@ -18,15 +14,11 @@
       text-align: center;
     }
 
-    h2 {
-      margin-top: 12px;
-    }
-
     video {
       width: 100%;
       max-height: 65vh;
       background: #111;
-      transform: scaleX(-1); /* зеркало */
+      transform: scaleX(-1);
     }
 
     button {
@@ -38,26 +30,11 @@
       border: none;
     }
 
-    #start {
-      background: #2ecc71;
-      color: black;
-    }
+    #start { background: #2ecc71; color: black; }
+    #stop  { background: #e74c3c; color: black; }
 
-    #stop {
-      background: #e74c3c;
-      color: black;
-    }
-
-    #reps {
-      font-size: 22px;
-      margin-top: 10px;
-    }
-
-    #status {
-      font-size: 14px;
-      opacity: 0.8;
-      margin-top: 6px;
-    }
+    #reps { font-size: 22px; margin-top: 10px; }
+    #status { font-size: 14px; opacity: 0.8; }
   </style>
 </head>
 <body>
@@ -72,6 +49,8 @@
   <button id="start">▶ Начать подход</button>
   <button id="stop" disabled>⏹ Завершить подход</button>
 
-  <script src="workout.js?v=5000"></script>
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script src="workout.js?v=9000"></script>
 </body>
 </html>
