@@ -1,77 +1,76 @@
-// ===== ЭЛЕМЕНТЫ =====
 const video = document.getElementById('video');
 const startBtn = document.getElementById('start');
 const stopBtn = document.getElementById('stop');
-const statusEl = document.getElementById('status');
 const repsEl = document.getElementById('reps');
+const statusEl = document.getElementById('status');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
 
-// ===== СОСТОЯНИЕ =====
 let stream = null;
-let camera = null;
 let active = false;
+let reps = 0;
 
-// ===== MEDIAPIPE =====
-const pose = new Pose({
-  locateFile: f => https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}
-});
+let lastFrame = null;
+let state = 'up';
 
-pose.setOptions({
-  modelComplexity: 0,
-  smoothLandmarks: true,
-  minDetectionConfidence: 0.7,
-  minTrackingConfidence: 0.7
-});
+function getFrameDiff(a, b) {
+  let diff = 0;
+  for (let i = 0; i < a.data.length; i += 4) {
+    diff += Math.abs(a.data[i] - b.data[i]);
+  }
+  return diff / a.data.length;
+}
 
-// ===== ГЛАВНОЕ: ПРОВЕРКА =====
-pose.onResults(res => {
+function processFrame() {
   if (!active) return;
 
-  if (!res.poseLandmarks) {
-    statusEl.innerText = 'MediaPipe: человек НЕ найден';
-    return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0);
+
+  const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  if (lastFrame) {
+    const diff = getFrameDiff(frame, lastFrame);
+    statusEl.innerText = Движение: ${diff.toFixed(2)};
+
+    if (diff > 12 && state === 'up') {
+      state = 'down';
+    }
+
+    if (diff < 6 && state === 'down') {
+      reps++;
+      repsEl.innerText = Повторы: ${reps};
+      state = 'up';
+    }
   }
 
-  // НОС
-  const nose = res.poseLandmarks[0];
+  lastFrame = frame;
+  requestAnimationFrame(processFrame);
+}
 
-  statusEl.innerText =
-    MediaPipe РАБОТАЕТ ✅ | Нос: x=${nose.x.toFixed(2)} y=${nose.y.toFixed(2)};
-});
-
-// ===== СТАРТ =====
 startBtn.onclick = async () => {
-  statusEl.innerText = 'Запуск камеры...';
+  reps = 0;
+  repsEl.innerText = 'Повторы: 0';
+  state = 'up';
+  lastFrame = null;
   active = true;
 
-  stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'user' }
-  });
-
+  stream = await navigator.mediaDevices.getUserMedia({ video: true });
   video.srcObject = stream;
   await video.play();
 
-  camera = new Camera(video, {
-    onFrame: async () => {
-      await pose.send({ image: video });
-    },
-    width: 640,
-    height: 480
-  });
-
-  camera.start();
-
+  statusEl.innerText = 'Камера включена';
   startBtn.disabled = true;
   stopBtn.disabled = false;
+
+  processFrame();
 };
 
-// ===== СТОП =====
 stopBtn.onclick = () => {
   active = false;
-
-  if (camera) camera.stop();
   if (stream) stream.getTracks().forEach(t => t.stop());
-
-  statusEl.innerText = 'Остановлено';
+  statusEl.innerText = Готово. Повторы: ${reps};
   startBtn.disabled = false;
   stopBtn.disabled = true;
 };
