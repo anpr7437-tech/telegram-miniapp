@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Камера и движение</title>
+  <title>Приседания</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -15,20 +15,24 @@
     }
 
     h2 {
-      margin: 12px 0;
+      margin: 10px 0;
     }
 
     video {
       width: 100%;
-      max-height: 60vh;
+      max-height: 55vh;
       background: #111;
       transform: scaleX(-1);
     }
 
-    #info {
+    #count {
+      font-size: 42px;
       margin: 10px 0;
-      font-size: 22px;
-      font-weight: bold;
+    }
+
+    #status {
+      font-size: 18px;
+      opacity: 0.8;
     }
 
     button {
@@ -45,28 +49,35 @@
 </head>
 <body>
 
-  <h2>📷 Камера + движение</h2>
+  <h2>🏋️ Приседания</h2>
 
   <video id="video" muted playsinline></video>
 
-  <div id="info">Ожидание</div>
+  <div id="count">0</div>
+  <div id="status">Ожидание</div>
 
-  <button id="start">▶ Включить камеру</button>
+  <button id="start">▶ Начать</button>
 
   <canvas id="canvas" style="display:none;"></canvas>
 
   <script>
     const video = document.getElementById('video');
     const startBtn = document.getElementById('start');
-    const info = document.getElementById('info');
+    const countEl = document.getElementById('count');
+    const statusEl = document.getElementById('status');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
     let lastFrame = null;
     let active = false;
 
-    let values = []; // сюда складываем последние значения
-    const MAX_VALUES = 10; // сглаживание
+    let values = [];
+    const MAX_VALUES = 10;
+
+    let reps = 0;
+    let phase = 'up'; // up → down → up
+    const DOWN_THRESHOLD = 1.8;
+    const UP_THRESHOLD = 0.8;
 
     function frameDiff(a, b) {
       let diff = 0;
@@ -91,16 +102,24 @@
         values.push(diff);
         if (values.length > MAX_VALUES) values.shift();
 
-        // среднее значение
         const avg =
           values.reduce((a, b) => a + b, 0) / values.length;
 
-        info.innerText = 'Движение: ' + avg.toFixed(2);
+        // ЛОГИКА ПРИСЕДА
+        if (phase === 'up' && avg > DOWN_THRESHOLD) {
+          phase = 'down';
+          statusEl.innerText = '⬇ Вниз';
+        }
+
+        if (phase === 'down' && avg < UP_THRESHOLD) {
+          phase = 'up';
+          reps++;
+          countEl.innerText = reps;
+          statusEl.innerText = '⬆ Вверх';
+        }
       }
 
       lastFrame = frame;
-
-      // обновляем 5 раз в секунду
       setTimeout(() => requestAnimationFrame(loop), 200);
     }
 
@@ -113,11 +132,15 @@
         video.srcObject = stream;
         await video.play();
 
+        reps = 0;
+        phase = 'up';
+        countEl.innerText = '0';
+        statusEl.innerText = 'Начали';
+
         active = true;
-        info.innerText = 'Камера включена';
         loop();
       } catch (e) {
-        info.innerText = 'Ошибка доступа к камере';
+        statusEl.innerText = 'Ошибка камеры';
       }
     };
   </script>
