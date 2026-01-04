@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Приседания</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    canvas {
+      width: 100%;
+      height: 70vh;
+      transform: scaleX(-1);
+      background: black;
+    }
+
+    video {
+      display: none;
+    }
+
+    #count {
+      font-size: 48px;
+      margin-top: 10px;
+    }
+
+    #message {
+      font-size: 18px;
+      margin: 10px;
+      min-height: 24px;
+    }
+
+    button {
+      width: 90%;
+      padding: 18px;
+      font-size: 20px;
+      border-radius: 12px;
+      border: none;
+      background: #2ecc71;
+      color: black;
+      margin: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🏋️ Приседания</h2>
+
+  <video id="video" playsinline muted></video>
+  <canvas id="canvas"></canvas>
+
+  <div id="count">0</div>
+  <div id="message">Нажми «Начать»</div>
+
+  <!-- ✅ КНОПКА ВСЕГДА ВИДНА -->
+  <button id="startBtn">▶ Начать</button>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const countEl = document.getElementById('count');
+    const msgEl = document.getElementById('message');
+    const startBtn = document.getElementById('startBtn');
+
+    let detector;
+    let stage = 'idle';
+    let hipStand = null;
+    let hipSquat = null;
+    let threshold = null;
+    let state = 'up';
+    let reps = 0;
+    let started = false;
+
+    async function initModel() {
+      detector = await poseDetection.createDetector(
+        poseDetection.SupportedModels.MoveNet,
+        { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
+      );
+    }
+
+    async function loop() {
+      const poses = await detector.estimatePoses(video);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      if (poses.length > 0) {
+        const kp = poses[0].keypoints;
+        const lh = kp.find(p => p.name === 'left_hip');
+        const rh = kp.find(p => p.name === 'right_hip');
+
+        if (lh && rh && lh.score > 0.4 && rh.score > 0.4) {
+          const hipY = (lh.y + rh.y) / 2;
+
+          ctx.fillStyle = 'red';
+          [lh, rh].forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+          });
+
+          if (stage === 'stand') hipStand = hipY;
+          if (stage === 'squat') hipSquat = hipSquat === null ? hipY : Math.max(hipSquat, hipY);
+
+          if (stage === 'count') {
+            if (state === 'up' && hipY > threshold) state = 'down';
+            if (state === 'down' && hipY < threshold) {
+              state = 'up';
+              reps++;
+              countEl.innerText = reps;
+              msgEl.innerText = '🔥 Вау, красавчик!';
+            }
+          }
+        }
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    // ✅ ВСЁ СТАРТУЕТ ОТ ОДНОЙ КНОПКИ
+    startBtn.onclick = async () => {
+      if (!started) {
+        started = true;
+
+        // 1. Камера
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        await video.play();
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        msgEl.innerText = 'Загружаю модель...';
+        await initModel();
+
+        loop();
+      }
+
+      // 2. Калибровка
+      reps = 0;
+      countEl.innerText = '0';
+      hipStand = null;
+      hipSquat = null;
+      state = 'up';
+
+      msgEl.innerText = 'Отойди и встань ровно';
+      stage = 'stand';
+
+      setTimeout(() => {
+        msgEl.innerText = 'Сделай ОДИН медленный присед';
+        stage = 'squat';
+      }, 3000);
+
+      setTimeout(() => {threshold = (hipStand + hipSquat) / 2;
+        stage = 'count';
+        msgEl.innerText = 'Приседай!';
+      }, 7000);
+    };
+  </script>
+
+</body>
+</html>
