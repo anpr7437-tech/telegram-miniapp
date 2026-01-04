@@ -1,22 +1,30 @@
 const video = document.getElementById('video');
 const startBtn = document.getElementById('start');
 const stopBtn = document.getElementById('stop');
+const statusEl = document.getElementById('status');
 
 let stream = null;
 
 startBtn.onclick = async () => {
+  statusEl.innerText = 'Запрос камеры...';
+
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'user' }
     });
 
     video.srcObject = stream;
-    alert('Камера включилась');
+
+    // КРИТИЧЕСКИ ВАЖНО ДЛЯ iPHONE
+    await video.play();
+
+    statusEl.innerText = 'Камера работает';
 
     startBtn.disabled = true;
     stopBtn.disabled = false;
   } catch (e) {
-    alert('Ошибка камеры: ' + e.message);
+    statusEl.innerText = 'Ошибка камеры';
+    alert('Ошибка: ' + e.message);
   }
 };
 
@@ -26,7 +34,7 @@ stopBtn.onclick = () => {
     video.srcObject = null;
   }
 
-  alert('Камера остановлена');
+  statusEl.innerText = 'Камера остановлена';
   startBtn.disabled = false;
   stopBtn.disabled = true;
 };
