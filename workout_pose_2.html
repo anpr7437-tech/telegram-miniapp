@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>MediaPipe Pose iOS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/pose.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+
+    video, canvas {
+      width: 100%;
+      max-height: 60vh;
+      transform: scaleX(-1);
+    }
+
+    button {
+      width: 90%;
+      padding: 16px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+      background: #2ecc71;
+      color: #000;
+      margin: 12px;
+    }
+
+    #status {
+      margin: 10px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🧠 MediaPipe Pose — iOS</h2>
+
+  <video id="video" playsinline muted></video>
+  <canvas id="canvas"></canvas>
+
+  <div id="status">Ожидание</div>
+
+  <button id="start">▶ Включить камеру</button>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+    const startBtn = document.getElementById('start');
+
+    const pose = new Pose({
+      locateFile: (file) =>
+        https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${file}
+    });
+
+    pose.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    pose.onResults(results => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+      if (results.poseLandmarks) {
+        drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
+          color: '#00FF00',
+          lineWidth: 4
+        });
+        drawLandmarks(ctx, results.poseLandmarks, {
+          color: '#FF0000',
+          lineWidth: 2
+        });
+
+        statusEl.innerText = 'Скелет найден';
+      } else {
+        statusEl.innerText = 'Ищу человека...';
+      }
+    });
+
+    async function startCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' }
+      });
+
+      video.srcObject = stream;
+      await video.play();
+
+      statusEl.innerText = 'Камера включена';
+
+      async function process() {
+        await pose.send({ image: video });
+        requestAnimationFrame(process);
+      }
+
+      process();
+    }
+
+    startBtn.onclick = () => {
+      startCamera().catch(err => {
+        statusEl.innerText = 'Ошибка камеры';
+        console.error(err);
+      });
+    };
+  </script>
+
+</body>
+</html>
