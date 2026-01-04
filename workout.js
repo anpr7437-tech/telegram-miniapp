@@ -10,23 +10,21 @@ let stream = null;
 let camera = null;
 let active = false;
 let reps = 0;
-let down = false;
+let state = 'up'; // up | down
 
-// ===== ФУНКЦИЯ УГЛА (КОЛЕНО) =====
-function calcAngle(a, b, c) {
+// ===== ФУНКЦИЯ УГЛА =====
+function angle(a, b, c) {
   const ab = { x: a.x - b.x, y: a.y - b.y };
   const cb = { x: c.x - b.x, y: c.y - b.y };
-
   const dot = ab.x * cb.x + ab.y * cb.y;
-  const mag = Math.sqrt(ab.x  2 + ab.y  2) * Math.sqrt(cb.x  2 + cb.y  2);
-
+  const mag = Math.sqrt(ab.x  2 + ab.y  2) *
+              Math.sqrt(cb.x  2 + cb.y  2);
   return Math.acos(dot / mag) * 180 / Math.PI;
 }
 
-// ===== MEDIAPIPE POSE =====
+// ===== MEDIAPIPE =====
 const pose = new Pose({
-  locateFile: file =>
-    https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}
+  locateFile: f => https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}
 });
 
 pose.setOptions({
@@ -36,36 +34,39 @@ pose.setOptions({
   minTrackingConfidence: 0.5
 });
 
-pose.onResults(results => {
-  if (!active || !results.poseLandmarks) return;
+pose.onResults(res => {
+  if (!active || !res.poseLandmarks) return;
 
-  // ЛЕВАЯ НОГА
-  const hip = results.poseLandmarks[23];
-  const knee = results.poseLandmarks[25];
-  const ankle = results.poseLandmarks[27];
+  // Левая нога
+  const hip = res.poseLandmarks[23];
+  const knee = res.poseLandmarks[25];
+  const ankle = res.poseLandmarks[27];
 
-  const angle = calcAngle(hip, knee, ankle);
+  const a = angle(hip, knee, ankle);
+
+  // ПОКАЗЫВАЕМ УГОЛ (ОЧЕНЬ ВАЖНО)
+  statusEl.innerText = Угол колена: ${Math.round(a)}°;
 
   // ВНИЗ
-  if (angle < 90) {
-    down = true;
+  if (a < 120 && state === 'up') {
+    state = 'down';
   }
 
-  // ВВЕРХ = +1 ПРИСЕД
-  if (angle > 160 && down) {
+  // ВВЕРХ = ПРИСЕД ЗАСЧИТАН
+  if (a > 150 && state === 'down') {
     reps++;
     repsEl.innerText = Повторы: ${reps};
-    down = false;
+    state = 'up';
   }
 });
 
-// ===== НАЧАТЬ ПОДХОД =====
+// ===== НАЧАТЬ =====
 startBtn.onclick = async () => {
-  statusEl.innerText = 'Запрос камеры...';
   reps = 0;
   repsEl.innerText = 'Повторы: 0';
+  state = 'up';
   active = true;
-  down = false;
+  statusEl.innerText = 'Запуск камеры...';
 
   stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: 'user' }
@@ -84,12 +85,11 @@ startBtn.onclick = async () => {
 
   camera.start();
 
-  statusEl.innerText = 'Считаю приседания';
   startBtn.disabled = true;
   stopBtn.disabled = false;
 };
 
-// ===== ЗАВЕРШИТЬ ПОДХОД =====
+// ===== СТОП =====
 stopBtn.onclick = () => {
   active = false;
 
