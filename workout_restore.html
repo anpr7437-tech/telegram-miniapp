@@ -120,23 +120,22 @@ async function loop() {
   const hipY = (lh.y + rh.y) / 2;
 
   if (stage === 'STAND') {
-    status.innerText = 'Встань ровно';
+    status.innerText = 'Встаньте ровно';
     hipStand = hipY;
   }
 
   if (stage === 'SQUAT') {
-    status.innerText = 'Сделай один присед';
+    status.innerText = 'Сделайте один присед';
     hipSquat = hipSquat === null ? hipY : Math.max(hipSquat, hipY);
   }
 
   if (stage === 'COUNT') {
-    status.innerText = 'Приседай';
+    status.innerText = 'Приседайте';
     if (state === 'UP' && hipY > threshold) state = 'DOWN';
     if (state === 'DOWN' && hipY < threshold) {
       state = 'UP';
       reps++;
       countEl.innerText = reps;
-      status.innerText = +${reward} 💰;
     }
   }
 
@@ -170,7 +169,7 @@ document.getElementById('start').onclick = async () => {
 document.getElementById('done').onclick = () => {
   balance += reps * reward;
   localStorage.setItem('balance', balance);
-  window.location.href = 'index.html';
+  window.location.href = 'entry.html';
 };
 </script>
 
