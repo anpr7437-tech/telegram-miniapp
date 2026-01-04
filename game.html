@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Telegram Fitness Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI";
+      background: radial-gradient(circle at top, #ff6a6a, #6a5cff, #0b0b12);
+      color: white;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top {
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .screen {
+      flex: 1;
+      display: none;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .center {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      flex-direction: column;
+    }
+
+    .train-btn {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle at top, #2ecc71, #1eaa5c);
+      box-shadow: 0 0 40px rgba(46,204,113,0.6);
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      font-size: 15px;
+      background: #6d5cff;
+      color: white;
+      margin-top: 10px;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+    }
+
+    .bottom {
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      background: rgba(0,0,0,0.4);
+      font-size: 13px;
+    }
+
+    .tab {
+      opacity: 0.6;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      opacity: 1;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<div class="top">
+  <div>⚡ <span id="perClick">1</span> / присед</div>
+  <div>💰 <span id="balance">0</span></div>
+</div>
+
+<!-- ГЛАВНАЯ -->
+<div class="screen active" id="home">
+  <div class="center">
+    <div class="train-btn" id="startTraining">
+      🏋️<br>Начать<br>тренировку
+    </div>
+    <p style="margin-top:20px; opacity:0.8;">
+      1 присед = <b><span id="reward">20</span> 💰</b>
+    </p>
+  </div>
+</div>
+
+<!-- ПРОКАЧКА -->
+<div class="screen" id="upgrade">
+  <div class="card">
+    <h3>⚡ Прокачка</h3>
+    <p>Монет за присед: <b id="currentValue">1</b></p>
+    <p>После покупки: <b id="nextValue">2</b></p>
+    <p>Цена: <b id="upgradePrice">100</b> 💰</p>
+    <button id="buyUpgrade">Купить улучшение</button>
+  </div>
+</div>
+
+<!-- ЗАДАНИЯ -->
+<div class="screen" id="tasks">
+  <div class="card">
+    <h3>🎯 Подписка</h3>
+    <p>Подпишись на канал и получи 100 💰</p>
+    <button id="taskBtn">Перейти и получить</button>
+  </div>
+</div>
+
+<!-- МАГАЗИН -->
+<div class="screen" id="shop">
+  <div id="shopItems"></div>
+</div>
+
+<div class="bottom">
+  <div class="tab active" data-screen="home">🏋️</div>
+  <div class="tab" data-screen="upgrade">⚡</div>
+  <div class="tab" data-screen="tasks">🎯</div>
+  <div class="tab" data-screen="shop">🏙</div>
+</div>
+
+<script>
+  const tg = Telegram.WebApp;
+  tg.expand();
+
+  let balance = +localStorage.getItem('balance') || 0;
+  let perClick = +localStorage.getItem('perClick') || 1;
+  let upgradePrice = +localStorage.getItem('upgradePrice') || 100;
+  let taskDone = localStorage.getItem('taskDone') === 'true';
+
+  let shop = JSON.parse(localStorage.getItem('shop')) || {
+    phone:false, car:false, house:false, city:false
+  };
+
+  const shopData = [
+    { id:'phone', name:'📱 Телефон', price:1000 },
+    { id:'car', name:'🚗 Машина', price:10000 },
+    { id:'house', name:'🏠 Дом', price:50000 },
+    { id:'city', name:'🌆 Город', price:250000 }
+  ];
+
+  function save() {
+    localStorage.setItem('balance', balance);
+    localStorage.setItem('perClick', perClick);
+    localStorage.setItem('upgradePrice', upgradePrice);
+    localStorage.setItem('taskDone', taskDone);
+    localStorage.setItem('shop', JSON.stringify(shop));
+  }
+
+  function updateUI() {
+    document.getElementById('balance').innerText = balance;
+    document.getElementById('perClick').innerText = perClick;
+    document.getElementById('reward').innerText = perClick * 20;
+    document.getElementById('currentValue').innerText = perClick;
+    document.getElementById('nextValue').innerText = perClick + 1;
+    document.getElementById('upgradePrice').innerText = upgradePrice;
+    document.getElementById('buyUpgrade').disabled = balance < upgradePrice;
+
+    if (taskDone) {
+      const btn = document.getElementById('taskBtn');
+      btn.innerText = 'Выполнено';
+      btn.disabled = true;
+    }
+  }
+
+  // 🔥 ВРЕМЕННЫЙ ТЕСТ — КНОПКА ТОЧНО РАБОТАЕТ
+  document.getElementById('startTraining').onclick = () => {
+    alert('КНОПКА НАЧАТЬ ТРЕНИРОВКУ РАБОТАЕТ');
+  };
+
+  document.getElementById('buyUpgrade').onclick = () => {
+    if (balance >= upgradePrice) {
+      balance -= upgradePrice;
+      perClick++;
+      upgradePrice = Math.floor(upgradePrice * 1.7);
+      save();
+      updateUI();
+    }
+  };
+
+  document.getElementById('taskBtn').onclick = () => {
+    if (!taskDone) {
+      balance += 100;
+      taskDone = true;
+      save();
+      updateUI();
+      tg.openLink('https://t.me/telegram');
+    }
+  };
+
+  function renderShop() {
+    const container = document.getElementById('shopItems');
+    container.innerHTML = '';
+    shopData.forEach(item => {
+      const owned = shop[item.id];
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <h3>${item.name}</h3>
+        <p>Цена: ${item.price} 💰</p>
+        <button ${owned || balance < item.price ? 'disabled' : ''}>
+          ${owned ? 'Куплено' : 'Купить'}
+        </button>`;
+      card.querySelector('button').onclick = () => {
+        if (!owned && balance >= item.price) {
+          balance -= item.price;
+          shop[item.id] = true;
+          save();
+          updateUI();
+          renderShop();
+        }
+      };
+      container.appendChild(card);
+    });
+  }
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.screen).classList.add('active');
+      if (tab.dataset.screen === 'shop') renderShop();
+    };
+  });
+
+  updateUI();
+</script>
+
+</body>
+</html>
