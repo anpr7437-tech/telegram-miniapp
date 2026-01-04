@@ -7,96 +7,42 @@ const repsEl = document.getElementById('reps');
 
 // ===== СОСТОЯНИЕ =====
 let stream = null;
-let camera = null;
-let active = false;
 let reps = 0;
-let state = 'up'; // up | down
 
-// ===== ФУНКЦИЯ УГЛА =====
-function angle(a, b, c) {
-  const ab = { x: a.x - b.x, y: a.y - b.y };
-  const cb = { x: c.x - b.x, y: c.y - b.y };
-  const dot = ab.x * cb.x + ab.y * cb.y;
-  const mag = Math.sqrt(ab.x  2 + ab.y  2) *
-              Math.sqrt(cb.x  2 + cb.y  2);
-  return Math.acos(dot / mag) * 180 / Math.PI;
-}
+// ===== ПРОВЕРКА: JS ЖИВ =====
+statusEl.innerText = 'JS загружен. Нажми "Начать подход"';
 
-// ===== MEDIAPIPE =====
-const pose = new Pose({
-  locateFile: f => https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}
-});
-
-pose.setOptions({
-  modelComplexity: 0,
-  smoothLandmarks: true,
-  minDetectionConfidence: 0.5,
-  minTrackingConfidence: 0.5
-});
-
-pose.onResults(res => {
-  if (!active || !res.poseLandmarks) return;
-
-  // Левая нога
-  const hip = res.poseLandmarks[23];
-  const knee = res.poseLandmarks[25];
-  const ankle = res.poseLandmarks[27];
-
-  const a = angle(hip, knee, ankle);
-
-  // ПОКАЗЫВАЕМ УГОЛ (ОЧЕНЬ ВАЖНО)
-  statusEl.innerText = Угол колена: ${Math.round(a)}°;
-
-  // ВНИЗ
-  if (a < 120 && state === 'up') {
-    state = 'down';
-  }
-
-  // ВВЕРХ = ПРИСЕД ЗАСЧИТАН
-  if (a > 150 && state === 'down') {
-    reps++;
-    repsEl.innerText = Повторы: ${reps};
-    state = 'up';
-  }
-});
-
-// ===== НАЧАТЬ =====
+// ===== КНОПКА НАЧАТЬ =====
 startBtn.onclick = async () => {
-  reps = 0;
-  repsEl.innerText = 'Повторы: 0';
-  state = 'up';
-  active = true;
-  statusEl.innerText = 'Запуск камеры...';
+  statusEl.innerText = 'Кнопка нажата';
 
-  stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'user' }
-  });
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user' }
+    });
 
-  video.srcObject = stream;
-  await video.play();
+    video.srcObject = stream;
+    await video.play();
 
-  camera = new Camera(video, {
-    onFrame: async () => {
-      await pose.send({ image: video });
-    },
-    width: 640,
-    height: 480
-  });
+    statusEl.innerText = 'Камера включена';
+    repsEl.innerText = 'Повторы: 0';
 
-  camera.start();
-
-  startBtn.disabled = true;
-  stopBtn.disabled = false;
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+  } catch (e) {
+    statusEl.innerText = 'Ошибка камеры';
+    alert(e.message);
+  }
 };
 
-// ===== СТОП =====
+// ===== КНОПКА СТОП =====
 stopBtn.onclick = () => {
-  active = false;
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
 
-  if (camera) camera.stop();
-  if (stream) stream.getTracks().forEach(t => t.stop());
-
-  statusEl.innerText = Готово. Повторы: ${reps};
+  statusEl.innerText = 'Остановлено';
   startBtn.disabled = false;
   stopBtn.disabled = true;
 };
