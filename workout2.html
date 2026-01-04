@@ -1,45 +1,55 @@
-const video = document.getElementById('video');
-const startBtn = document.getElementById('start');
-const info = document.getElementById('info');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Тест движения</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-let lastFrame = null;
-let active = false;
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
 
-// считаем разницу между кадрами
-function frameDiff(a, b) {
-  let diff = 0;
-  for (let i = 0; i < a.data.length; i += 4) {
-    diff += Math.abs(a.data[i] - b.data[i]);
-  }
-  return diff / a.data.length;
-}
+    video {
+      width: 100%;
+      max-height: 60vh;
+      background: #111;
+      transform: scaleX(-1);
+    }
 
-function loop() {
-  if (!active) return;
+    #info {
+      margin-top: 10px;
+      font-size: 18px;
+    }
 
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  ctx.drawImage(video, 0, 0);
+    button {
+      width: 80%;
+      padding: 16px;
+      margin: 15px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+      background: #2ecc71;
+      color: black;
+    }
+  </style>
+</head>
+<body>
 
-  const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  <h2>🔍 Тест движения</h2>
 
-  if (lastFrame) {
-    const diff = frameDiff(frame, lastFrame);
-    info.innerText = Движение: ${diff.toFixed(2)};
-  }
+  <video id="video" muted playsinline></video>
 
-  lastFrame = frame;
-  requestAnimationFrame(loop);
-}
+  <div id="info">Ожидание</div>
 
-startBtn.onclick = async () => {
-  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-  video.srcObject = stream;
-  await video.play();
+  <button id="start">▶ Включить камеру</button>
 
-  active = true;
-  info.innerText = 'Камера включена';
-  loop();
-};
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script src="workout.js?v=5001"></script>
+</body>
+</html>
