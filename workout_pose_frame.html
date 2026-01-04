@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>MediaPipe Pose — 1 кадр</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/pose.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      color: white;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+
+    video, canvas {
+      width: 100%;
+      max-height: 60vh;
+      transform: scaleX(-1);
+    }
+
+    button {
+      width: 90%;
+      padding: 16px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+      background: #2ecc71;
+      color: black;
+      margin: 10px;
+    }
+
+    #status {
+      margin: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🧠 MediaPipe Pose — один кадр</h2>
+
+  <video id="video" playsinline muted></video>
+  <canvas id="canvas"></canvas>
+
+  <div id="status">Ожидание</div>
+
+  <button id="startCamera">▶ Включить камеру</button>
+  <button id="captureFrame" disabled>📸 Сделать кадр через 3 сек</button>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+
+    const btnStart = document.getElementById('startCamera');
+    const btnCapture = document.getElementById('captureFrame');
+
+    // MediaPipe Pose
+    const pose = new Pose({
+      locateFile: file =>
+        https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${file}
+    });
+
+    pose.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    pose.onResults(results => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+      if (results.poseLandmarks) {
+        drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
+          color: '#00FF00',
+          lineWidth: 4
+        });
+        drawLandmarks(ctx, results.poseLandmarks, {
+          color: '#FF0000',
+          lineWidth: 2
+        });
+        statusEl.innerText = '✅ Скелет НАЙДЕН (1 кадр)';
+      } else {
+        statusEl.innerText = '❌ Скелет НЕ найден';
+      }
+    });
+
+    // 1️⃣ Включаем камеру
+    btnStart.onclick = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' }
+        });
+
+        video.srcObject = stream;
+        await video.play();
+
+        statusEl.innerText = 'Камера включена';
+        btnCapture.disabled = false;
+      } catch (e) {
+        statusEl.innerText = 'Ошибка камеры';
+        console.error(e);
+      }
+    };
+
+    // 2️⃣ Захват одного кадра через 3 секунды
+    btnCapture.onclick = () => {
+      statusEl.innerText = 'Готовься... кадр через 3 сек';
+
+      setTimeout(async () => {
+        statusEl.innerText = 'Обрабатываю кадр...';
+        await pose.send({ image: video });
+      }, 3000);
+    };
+  </script>
+
+</body>
+</html>
