@@ -2,35 +2,51 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>ENTRY</title>
+<title>Mini App</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <style>
 body {
-  margin:0;
-  background:#111;
-  color:white;
-  font-family:Arial;
-  text-align:center;
+  margin: 0;
+  background: #0b0b12;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
 }
+
+h1 {
+  margin-top: 40px;
+}
+
 button {
-  margin-top:40px;
-  width:90%;
-  padding:20px;
-  font-size:22px;
+  width: 90%;
+  margin-top: 40px;
+  padding: 20px;
+  font-size: 22px;
+  border-radius: 14px;
+  border: none;
+  background: #2ecc71;
+  color: black;
 }
 </style>
 </head>
+
 <body>
 
-<h1>ENTRY ЗАГРУЗИЛСЯ</h1>
+<h1>🏋️ Тренировка</h1>
 
-<button onclick="alert('ENTRY РАБОТАЕТ')">
-  НАЖМИ МЕНЯ
-</button>
+<p>Сделай приседания и получи монетки</p>
+
+<button onclick="go()">▶ Начать тренировку</button>
 
 <script>
-Telegram.WebApp.expand();
+const tg = Telegram.WebApp;
+tg.expand();
+
+function go() {
+  window.location.href = 'workout_restore.html';
+}
 </script>
 
 </body>
