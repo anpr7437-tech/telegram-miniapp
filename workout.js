@@ -1,70 +1,58 @@
-// ===== TELEGRAM =====
-const tg = Telegram.WebApp;
-tg.expand();
+// ===== TELEGRAM (БЕЗ ПАДЕНИЯ) =====
+let tg = null;
+if (window.Telegram && window.Telegram.WebApp) {
+  tg = window.Telegram.WebApp;
+  tg.expand();
+}
 
-// ===== HTML ЭЛЕМЕНТЫ =====
+// ===== ЭЛЕМЕНТЫ =====
 const video = document.getElementById('video');
 const repsEl = document.getElementById('reps');
+const statusEl = document.getElementById('status');
 const startBtn = document.getElementById('start');
 const stopBtn = document.getElementById('stop');
 
-// ===== СОСТОЯНИЕ =====
 let reps = 0;
 let active = false;
 let down = false;
 let cameraStarted = false;
 
-// ===== ФУНКЦИЯ УГЛА (КОЛЕНО) =====
-function calcAngle(a, b, c) {
+// ===== ПРОВЕРКА КНОПКИ =====
+console.log('JS загружен');
+startBtn.onclick = () => alert('Кнопка нажата (JS работает)');
+
+// ===== УГОЛ =====
+function angle(a, b, c) {
   const ab = { x: a.x - b.x, y: a.y - b.y };
   const cb = { x: c.x - b.x, y: c.y - b.y };
-
   const dot = ab.x * cb.x + ab.y * cb.y;
-  const magAB = Math.sqrt(ab.x  2 + ab.y  2);
-  const magCB = Math.sqrt(cb.x  2 + cb.y  2);
-
-  let angle = Math.acos(dot / (magAB * magCB));
-  return angle * (180 / Math.PI);
+  const mag = Math.sqrt(ab.x**2 + ab.y**2) * Math.sqrt(cb.x**2 + cb.y**2);
+  return Math.acos(dot / mag) * 180 / Math.PI;
 }
 
-// ===== MEDIAPIPE POSE =====
+// ===== MEDIAPIPE =====
 const pose = new Pose({
-  locateFile: file =>
-    https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}
+  locateFile: f => https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}
 });
 
-pose.setOptions({
-  modelComplexity: 0,
-  smoothLandmarks: true,
-  minDetectionConfidence: 0.5,
-  minTrackingConfidence: 0.5
-});
+pose.onResults(res => {
+  if (!active || !res.poseLandmarks) return;
 
-pose.onResults(results => {
-  if (!active) return;
-  if (!results.poseLandmarks) return;
+  const hip = res.poseLandmarks[23];
+  const knee = res.poseLandmarks[25];
+  const ankle = res.poseLandmarks[27];
 
-  // Левая нога
-  const hip = results.poseLandmarks[23];
-  const knee = results.poseLandmarks[25];
-  const ankle = results.poseLandmarks[27];
+  const a = angle(hip, knee, ankle);
 
-  const angle = calcAngle(hip, knee, ankle);
-
-  // Вниз
-  if (angle < 90) {
-    down = true;
-  }
-
-  // Вверх = 1 повтор
-  if (angle > 160 && down) {
+  if (a < 90) down = true;
+  if (a > 160 && down) {
     reps++;
     repsEl.innerText = reps;
     down = false;
   }
 });
 
-// ===== КАМЕРА (НО НЕ ЗАПУСКАЕМ СРАЗУ) =====
+// ===== КАМЕРА =====
 const camera = new Camera(video, {
   onFrame: async () => {
     await pose.send({ image: video });
@@ -73,43 +61,43 @@ const camera = new Camera(video, {
   height: 480
 });
 
-// ===== КНОПКА: НАЧАТЬ ПОДХОД =====
+// ===== НАЧАТЬ =====
 startBtn.onclick = async () => {
+  statusEl.innerText = 'Запуск камеры...';
   reps = 0;
   repsEl.innerText = 0;
   active = true;
   down = false;
 
   if (!cameraStarted) {
-    await camera.start(); // 🔥 КАМЕРА ЗАПУСКАЕТСЯ ТОЛЬКО ТУТ
+    await camera.start();
     cameraStarted = true;
   }
 
+  statusEl.innerText = 'Камера работает';
   startBtn.disabled = true;
   stopBtn.disabled = false;
 };
 
-// ===== КНОПКА: ЗАВЕРШИТЬ ПОДХОД =====
+// ===== ЗАВЕРШИТЬ =====
 stopBtn.onclick = async () => {
   active = false;
   startBtn.disabled = false;
   stopBtn.disabled = true;
+  statusEl.innerText = 'Подход завершён';
 
-  // Отправляем данные на сервер
-  try {
-    await fetch('/api/workout', {
+  if (tg) {
+    fetch('/api/workout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        user_id: tg.initDataUnsafe.user.id,
+        user_id: tg.initDataUnsafe?.user?.id || 0,
         exercise: 'squat',
-        reps: reps,
+        reps,
         time: new Date().toISOString()
       })
     });
-  } catch (e) {
-    console.log('Ошибка отправки:', e);
   }
 
-  alert(`Подход завершён!\nПовторы: ${reps}`);
+  alert(`Готово! Повторы: ${reps}`);
 };
