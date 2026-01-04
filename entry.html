@@ -2,32 +2,27 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Mini App</title>
+<title>Entry</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
 body {
-  margin: 0;
-  background: #0b0b12;
-  color: white;
-  font-family: Arial, sans-serif;
-  text-align: center;
+  margin:0;
+  background:#0b0b12;
+  color:white;
+  font-family:Arial;
+  text-align:center;
 }
-
-h1 {
-  margin-top: 40px;
-}
-
 button {
-  width: 90%;
-  margin-top: 40px;
-  padding: 20px;
-  font-size: 22px;
-  border-radius: 14px;
-  border: none;
-  background: #2ecc71;
-  color: black;
+  margin-top:40px;
+  width:90%;
+  padding:22px;
+  font-size:22px;
+  border-radius:14px;
+  border:none;
+  background:#2ecc71;
+  color:black;
 }
 </style>
 </head>
@@ -35,17 +30,15 @@ button {
 <body>
 
 <h1>🏋️ Тренировка</h1>
+<p>Приседай — получай монеты</p>
 
-<p>Сделай приседания и получи монетки</p>
-
-<button onclick="go()">▶ Начать тренировку</button>
+<button onclick="go()">▶ НАЧАТЬ</button>
 
 <script>
-const tg = Telegram.WebApp;
-tg.expand();
+Telegram.WebApp.expand();
 
 function go() {
-  window.location.href = 'workout_restore.html';
+  window.location.href = 'workout_movenet.html';
 }
 </script>
 
