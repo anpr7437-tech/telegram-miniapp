@@ -5,6 +5,10 @@
   <title>Тренировка</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
   <style>
     body {
       margin: 0;
@@ -23,7 +27,7 @@
       max-height: 60vh;
       background: #111;
 
-      /* 🔥 ИСПРАВЛЯЕМ ЗЕРКАЛО */
+      /* ЗЕРКАЛО ИСПРАВЛЕНО */
       transform: scaleX(-1);
     }
 
@@ -46,8 +50,12 @@
       color: black;
     }
 
-    #status {
+    #reps {
+      font-size: 22px;
       margin-top: 10px;
+    }
+
+    #status {
       font-size: 14px;
       opacity: 0.8;
     }
@@ -57,20 +65,14 @@
 
   <h2>🏋️ Приседания</h2>
 
-  <!-- ВАЖНО: muted + playsinline для iPhone -->
-  <video
-    id="video"
-    muted
-    playsinline
-  ></video>
+  <video id="video" muted playsinline></video>
 
-  <p id="status">Ожидание</p>
+  <div id="reps">Повторы: 0</div>
+  <div id="status">Ожидание</div>
 
   <button id="start">▶ Начать подход</button>
   <button id="stop" disabled>⏹ Завершить подход</button>
 
-  <!-- анти-кеш -->
-  <script src="workout.js?v=2000"></script>
-
+  <script src="workout.js?v=3000"></script>
 </body>
 </html>
