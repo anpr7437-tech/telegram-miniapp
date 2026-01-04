@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Game v1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:system-ui;
+  background:radial-gradient(circle at top,#ff6a6a,#6a5cff,#0b0b12);
+  color:white;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+.top{
+  padding:14px 16px;
+  display:flex;
+  justify-content:space-between;
+  font-weight:bold;
+}
+.center{
+  flex:1;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+}
+.train-btn{
+  width:220px;
+  height:220px;
+  border-radius:50%;
+  background:radial-gradient(circle at top,#2ecc71,#1eaa5c);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-weight:bold;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="top">
+  <div>⚡ <span id="perClick">1</span> / присед</div>
+  <div>💰 <span id="balance">0</span></div>
+</div>
+
+<div class="center">
+  <div class="train-btn" id="startTraining">
+    🏋️<br>Начать<br>тренировку
+  </div>
+  <p>1 присед = <b><span id="reward">20</span> 💰</b></p>
+</div>
+
+<script>
+Telegram.WebApp.expand();
+
+let balance = +localStorage.getItem('balance') || 0;
+let perClick = +localStorage.getItem('perClick') || 1;
+
+function updateUI(){
+  balance = +localStorage.getItem('balance') || 0;
+  document.getElementById('balance').innerText = balance;
+  document.getElementById('perClick').innerText = perClick;
+  document.getElementById('reward').innerText = perClick * 20;
+}
+
+document.getElementById('startTraining').onclick = () => {
+  window.location.href = 'workout_v5.html';
+};
+
+updateUI();
+</script>
+
+</body>
+</html>
