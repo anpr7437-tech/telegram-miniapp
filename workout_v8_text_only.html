@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Workout v8</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  background: black;
+  color: white;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI";
+  overflow: hidden;
+}
+
+/* Видео */
+video {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+/* Затемнение + текст */
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+#textBox {
+  background: rgba(0, 0, 0, 0.7);
+  padding: 32px 40px;
+  border-radius: 24px;
+  text-align: center;
+  max-width: 90%;
+}
+
+#text {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+/* Кнопка */
+button {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  padding: 20px;
+  font-size: 22px;
+  border-radius: 16px;
+  border: none;
+  background: #2ecc71;
+  color: black;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<video id="video" playsinline muted></video>
+
+<div id="overlay">
+  <div id="textBox">
+    <div id="text">Нажми «Начать тренировку»</div>
+  </div>
+</div>
+
+<button id="startBtn">▶ НАЧАТЬ ТРЕНИРОВКУ</button>
+
+<script>
+const video = document.getElementById('video');
+const text = document.getElementById('text');
+const startBtn = document.getElementById('startBtn');
+
+startBtn.onclick = () => {
+  text.innerText = 'Подключаемся к камере…';
+
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      video.srcObject = stream;
+      video.play();
+      startBtn.style.display = 'none';
+
+      text.innerText = 'Встань во весь рост\nи не двигайся';
+    })
+    .catch(() => {
+      text.innerText = 'Не удалось включить камеру';
+    });
+};
+</script>
+
+</body>
+</html>
