@@ -108,6 +108,7 @@
   <div>💰 <span id="balance">0</span></div>
 </div>
 
+<!-- ГЛАВНАЯ -->
 <div class="screen active" id="home">
   <div class="center">
     <div class="train-btn" id="startTraining">
@@ -119,6 +120,7 @@
   </div>
 </div>
 
+<!-- ПРОКАЧКА -->
 <div class="screen" id="upgrade">
   <div class="card">
     <h3>⚡ Прокачка</h3>
@@ -129,6 +131,7 @@
   </div>
 </div>
 
+<!-- ЗАДАНИЯ -->
 <div class="screen" id="tasks">
   <div class="card">
     <h3>🎯 Подписка</h3>
@@ -137,6 +140,7 @@
   </div>
 </div>
 
+<!-- МАГАЗИН -->
 <div class="screen" id="shop">
   <div id="shopItems"></div>
 </div>
@@ -157,11 +161,23 @@
   let upgradePrice = +localStorage.getItem('upgradePrice') || 100;
   let taskDone = localStorage.getItem('taskDone') === 'true';
 
+  let shop = JSON.parse(localStorage.getItem('shop')) || {
+    phone:false, car:false, house:false, city:false
+  };
+
+  const shopData = [
+    { id:'phone', name:'📱 Телефон', price:1000 },
+    { id:'car', name:'🚗 Машина', price:10000 },
+    { id:'house', name:'🏠 Дом', price:50000 },
+    { id:'city', name:'🌆 Город', price:250000 }
+  ];
+
   function save() {
     localStorage.setItem('balance', balance);
     localStorage.setItem('perClick', perClick);
     localStorage.setItem('upgradePrice', upgradePrice);
     localStorage.setItem('taskDone', taskDone);
+    localStorage.setItem('shop', JSON.stringify(shop));
   }
 
   function updateUI() {
@@ -180,8 +196,9 @@
     }
   }
 
+  // 🔥 ВАЖНО: ВЕДЁТ НА workoutfinal2.html
   document.getElementById('startTraining').onclick = () => {
-    window.location.href = 'workoutfinal.html';
+    window.location.href = 'workoutfinal2.html';
   };
 
   document.getElementById('buyUpgrade').onclick = () => {
@@ -204,12 +221,39 @@
     }
   };
 
+  function renderShop() {
+    const container = document.getElementById('shopItems');
+    container.innerHTML = '';
+    shopData.forEach(item => {
+      const owned = shop[item.id];
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <h3>${item.name}</h3>
+        <p>Цена: ${item.price} 💰</p>
+        <button ${owned || balance < item.price ? 'disabled' : ''}>
+          ${owned ? 'Куплено' : 'Купить'}
+        </button>`;
+      card.querySelector('button').onclick = () => {
+        if (!owned && balance >= item.price) {
+          balance -= item.price;
+          shop[item.id] = true;
+          save();
+          updateUI();
+          renderShop();
+        }
+      };
+      container.appendChild(card);
+    });
+  }
+
   document.querySelectorAll('.tab').forEach(tab => {
     tab.onclick = () => {
       document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
       document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById(tab.dataset.screen).classList.add('active');
+      if (tab.dataset.screen === 'shop') renderShop();
     };
   });
 
