@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Camera Test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  background: #111;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+button {
+  margin-top: 40px;
+  width: 90%;
+  padding: 20px;
+  font-size: 22px;
+  border-radius: 12px;
+  border: none;
+  background: #2ecc71;
+  color: black;
+}
+video {
+  width: 100%;
+  height: 60vh;
+  background: black;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Тест камеры</h2>
+
+<button id="start">▶ ВКЛЮЧИТЬ КАМЕРУ</button>
+
+<video id="video" autoplay playsinline></video>
+
+<script>
+document.getElementById('start').onclick = async () => {
+  alert('КНОПКА РАБОТАЕТ');
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    document.getElementById('video').srcObject = stream;
+  } catch (e) {
+    alert('ОШИБКА ДОСТУПА К КАМЕРЕ');
+    console.error(e);
+  }
+};
+</script>
+
+</body>
+</html>
