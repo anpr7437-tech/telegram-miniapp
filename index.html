@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Telegram Clicker</title>
+  <title>Telegram Fitness Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -41,24 +41,23 @@
       justify-content: center;
       align-items: center;
       height: 100%;
+      flex-direction: column;
     }
 
-    .coin {
-      width: 160px;
-      height: 160px;
+    .train-btn {
+      width: 220px;
+      height: 220px;
       border-radius: 50%;
-      background: radial-gradient(circle at top, #ffd700, #ff9f00);
-      box-shadow: 0 0 40px rgba(255,215,0,0.6);
-      font-size: 48px;
+      background: radial-gradient(circle at top, #2ecc71, #1eaa5c);
+      box-shadow: 0 0 40px rgba(46,204,113,0.6);
+      font-size: 18px;
+      font-weight: bold;
       display: flex;
       justify-content: center;
       align-items: center;
+      text-align: center;
       cursor: pointer;
       user-select: none;
-    }
-
-    .coin:active {
-      transform: scale(0.9);
     }
 
     .card {
@@ -105,14 +104,19 @@
 <body>
 
 <div class="top">
-  <div>⚡ <span id="perClick">1</span> / клик</div>
+  <div>⚡ <span id="perClick">1</span> / присед</div>
   <div>💰 <span id="balance">0</span></div>
 </div>
 
 <!-- ГЛАВНАЯ -->
 <div class="screen active" id="home">
   <div class="center">
-    <div class="coin" id="coin">🪙</div>
+    <div class="train-btn" id="startTraining">
+      🏋️<br>Начать<br>тренировку
+    </div>
+    <p style="margin-top:20px; opacity:0.8;">
+      1 присед = <b><span id="reward">20</span> 💰</b>
+    </p>
   </div>
 </div>
 
@@ -120,7 +124,7 @@
 <div class="screen" id="upgrade">
   <div class="card">
     <h3>⚡ Прокачка</h3>
-    <p>Текущий: <b id="currentValue">1</b></p>
+    <p>Монет за присед: <b id="currentValue">1</b></p>
     <p>После покупки: <b id="nextValue">2</b></p>
     <p>Цена: <b id="upgradePrice">100</b> 💰</p>
     <button id="buyUpgrade">Купить улучшение</button>
@@ -142,7 +146,7 @@
 </div>
 
 <div class="bottom">
-  <div class="tab active" data-screen="home">🪙 Главная</div>
+  <div class="tab active" data-screen="home">🏋️ Тренировка</div>
   <div class="tab" data-screen="upgrade">⚡ Прокачка</div>
   <div class="tab" data-screen="tasks">🎯 Задания</div>
   <div class="tab" data-screen="shop">🏙 Магазин</div>
@@ -158,17 +162,14 @@
   let taskDone = localStorage.getItem('taskDone') === 'true';
 
   let shop = JSON.parse(localStorage.getItem('shop')) || {
-    phone: false,
-    car: false,
-    house: false,
-    city: false
+    phone:false, car:false, house:false, city:false
   };
 
   const shopData = [
-    { id: 'phone', name: '📱 Телефон', price: 1000 },
-    { id: 'car', name: '🚗 Машина', price: 10000 },
-    { id: 'house', name: '🏠 Дом', price: 50000 },
-    { id: 'city', name: '🌆 Город', price: 250000 }
+    { id:'phone', name:'📱 Телефон', price:1000 },
+    { id:'car', name:'🚗 Машина', price:10000 },
+    { id:'house', name:'🏠 Дом', price:50000 },
+    { id:'city', name:'🌆 Город', price:250000 }
   ];
 
   function save() {
@@ -180,28 +181,36 @@
   }
 
   function updateUI() {
-    balance.innerText = balance;
-    document.getElementById('balance').innerText = balance;
-    document.getElementById('perClick').innerText = perClick;
-    document.getElementById('currentValue').innerText = perClick;
-    document.getElementById('nextValue').innerText = perClick + 1;
-    document.getElementById('upgradePrice').innerText = upgradePrice;
-    document.getElementById('buyUpgrade').disabled = balance < upgradePrice;
-
-    const taskBtn = document.getElementById('taskBtn');
+    balanceSpan.innerText = balance;
+    perClickSpan.innerText = perClick;
+    reward.innerText = perClick * 20;
+    currentValue.innerText = perClick;
+    nextValue.innerText = perClick + 1;
+    upgradePriceSpan.innerText = upgradePrice;
+    buyUpgrade.disabled = balance < upgradePrice;
     if (taskDone) {
       taskBtn.innerText = 'Выполнено';
       taskBtn.disabled = true;
     }
   }
 
-  document.getElementById('coin').onclick = () => {
-    balance += perClick;
-    save();
-    updateUI();
+  // ссылки на элементы
+  const balanceSpan = document.getElementById('balance');
+  const perClickSpan = document.getElementById('perClick');
+  const reward = document.getElementById('reward');
+  const currentValue = document.getElementById('currentValue');
+  const nextValue = document.getElementById('nextValue');
+  const upgradePriceSpan = document.getElementById('upgradePrice');
+  const buyUpgrade = document.getElementById('buyUpgrade');
+  const taskBtn = document.getElementById('taskBtn');
+
+  // ▶ ТРЕНИРОВКА
+  document.getElementById('startTraining').onclick = () => {
+    tg.openLink('workout.html');
   };
 
-  document.getElementById('buyUpgrade').onclick = () => {
+  // ⚡ ПРОКАЧКА
+  buyUpgrade.onclick = () => {
     if (balance >= upgradePrice) {
       balance -= upgradePrice;
       perClick++;
@@ -211,7 +220,8 @@
     }
   };
 
-  document.getElementById('taskBtn').onclick = () => {
+  // 🎯 ЗАДАНИЕ
+  taskBtn.onclick = () => {
     if (!taskDone) {
       balance += 100;
       taskDone = true;
@@ -221,26 +231,21 @@
     }
   };
 
+  // 🏙 МАГАЗИН
   function renderShop() {
     const container = document.getElementById('shopItems');
     container.innerHTML = '';
-
     shopData.forEach(item => {
+      const owned = shop[item.id];
       const card = document.createElement('div');
       card.className = 'card';
-
-      const owned = shop[item.id];
-
       card.innerHTML = `
         <h3>${item.name}</h3>
         <p>Цена: ${item.price} 💰</p>
         <button ${owned || balance < item.price ? 'disabled' : ''}>
           ${owned ? 'Куплено' : 'Купить'}
-        </button>
-      `;
-
-      const btn = card.querySelector('button');
-      btn.onclick = () => {
+        </button>`;
+      card.querySelector('button').onclick = () => {
         if (!owned && balance >= item.price) {
           balance -= item.price;
           shop[item.id] = true;
@@ -249,19 +254,17 @@
           renderShop();
         }
       };
-
       container.appendChild(card);
     });
   }
 
+  // НАВИГАЦИЯ
   document.querySelectorAll('.tab').forEach(tab => {
     tab.onclick = () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById(tab.dataset.screen).classList.add('active');
-
       if (tab.dataset.screen === 'shop') renderShop();
     };
   });
