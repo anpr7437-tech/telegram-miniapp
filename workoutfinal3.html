@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Тренировка</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+<style>
+body {
+  margin:0;
+  background:black;
+  color:white;
+  font-family:Arial, sans-serif;
+  text-align:center;
+}
+
+#wrapper {
+  position: relative;
+  width: 100%;
+  height: 65vh;
+}
+
+canvas {
+  width:100%;
+  height:100%;
+  transform:scaleX(-1);
+  background:black;
+}
+
+/* ОВЕРЛЕЙ С ТЕКСТОМ */
+#overlay {
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+}
+
+#overlayText {
+  background: rgba(0,0,0,0.65);
+  padding: 20px 24px;
+  border-radius: 16px;
+  font-size: 28px;
+  line-height: 1.3;
+  max-width: 90%;
+}
+
+button {
+  width:90%;
+  padding:16px;
+  font-size:18px;
+  border-radius:12px;
+  border:none;
+  background:#2ecc71;
+  color:black;
+  margin:12px;
+}
+
+video { display:none; }
+
+#count {
+  font-size:48px;
+  margin:12px 0;
+}
+</style>
+</head>
+<body>
+
+<h2>🏋️ Приседания</h2>
+
+<div id="wrapper">
+  <video id="video" playsinline muted></video>
+  <canvas id="canvas"></canvas>
+
+  <div id="overlay">
+    <div id="overlayText">Нажми «Начать»</div>
+  </div>
+</div>
+
+<div id="count">0</div>
+
+<button id="start">▶ Начать</button>
+<button id="done" style="display:none;">✅ Готово</button>
+
+<script>
+let balance = +localStorage.getItem('balance') || 0;
+let perClick = +localStorage.getItem('perClick') || 1;
+const rewardPerRep = 20 * perClick;
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const overlayText = document.getElementById('overlayText');
+const countEl = document.getElementById('count');
+
+const startBtn = document.getElementById('start');
+const doneBtn = document.getElementById('done');
+
+let detector;
+let reps = 0;
+let state = 'UP';
+let stage = 'IDLE';
+
+let hipStand = null;
+let hipSquat = null;
+let threshold = null;
+
+async function initModel() {
+  detector = await poseDetection.createDetector(
+    poseDetection.SupportedModels.MoveNet,
+    { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
+  );
+}
+
+async function loop() {
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  if (!detector) {
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  const poses = await detector.estimatePoses(video);
+
+  if (!poses.length) {
+    overlayText.innerText = '❗ Мы вас не видим\nВстаньте во весь рост';
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  const kp = poses[0].keypoints;
+  const lh = kp.find(p => p.name === 'left_hip');
+  const rh = kp.find(p => p.name === 'right_hip');
+
+  if (!lh  !rh  lh.score < 0.4 || rh.score < 0.4) {
+    overlayText.innerText = '❗ Мы вас не видим\nВстаньте во весь рост';
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  const hipY = (lh.y + rh.y) / 2;
+
+  if (stage === 'STAND') {
+    overlayText.innerText = 'Отойди и встань ровно';
+    hipStand = hipY;
+  }
+
+  if (stage === 'SQUAT') {
+    overlayText.innerText = 'Сделай ОДИН медленный присед';
+    hipSquat = hipSquat === null ? hipY : Math.max(hipSquat, hipY);
+  }
+
+  if (stage === 'COUNT') {
+    overlayText.innerText = 'Приседай!';
+    if (state === 'UP' && hipY > threshold) state = 'DOWN';
+    if (state === 'DOWN' && hipY < threshold) {
+      state = 'UP';
+      reps++;
+      countEl.innerText = reps;
+      overlayText.innerText = '🔥 +' + rewardPerRep + ' 💰';
+    }
+  }
+
+  requestAnimationFrame(loop);
+}
+
+startBtn.onclick = async () => {
+  startBtn.style.display = 'none';
+  doneBtn.style.display = 'block';
+
+  overlayText.innerText = 'Подключаем камеру...';
+
+  const stream = await navigator.mediaDevices.getUserMedia({ video:true });
+  video.srcObject = stream;
+  await video.play();
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  await initModel();
+  loop();
+
+  stage = 'STAND';
+  setTimeout(() => {
+    stage = 'SQUAT';
+  }, 3000);
+
+  setTimeout(() => {
+    threshold = (hipStand + hipSquat) / 2;
+    stage = 'COUNT';
+  }, 7000);
+};
+
+doneBtn.onclick = () => {
+  balance += reps * rewardPerRep;
+  localStorage.setItem('balance', balance);
+  window.location.href = 'index.html';
+};
+</script>
+
+</body>
+</html>
