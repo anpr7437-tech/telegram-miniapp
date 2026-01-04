@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>MediaPipe Pose — тест</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/pose.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+
+    video, canvas {
+      width: 100%;
+      max-height: 60vh;
+      transform: scaleX(-1);
+    }
+
+    #status {
+      margin: 10px;
+      font-size: 18px;
+    }
+
+    button {
+      width: 90%;
+      padding: 16px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+      background: #2ecc71;
+      color: #000;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🧠 MediaPipe Pose — тест</h2>
+
+  <video id="video" playsinline muted></video>
+  <canvas id="canvas"></canvas>
+
+  <div id="status">Ожидание</div>
+
+  <button id="start">▶ Включить камеру</button>
+
+  <script>
+    const videoElement = document.getElementById('video');
+    const canvasElement = document.getElementById('canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+    const statusEl = document.getElementById('status');
+    const startBtn = document.getElementById('start');
+
+    const pose = new Pose({
+      locateFile: (file) => {
+        return https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${file};
+      }
+    });
+
+    pose.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      enableSegmentation: false,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    pose.onResults(results => {
+      canvasElement.width = videoElement.videoWidth;
+      canvasElement.height = videoElement.videoHeight;
+
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+      if (results.poseLandmarks) {
+        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
+          color: '#00FF00',
+          lineWidth: 4
+        });
+        drawLandmarks(canvasCtx, results.poseLandmarks, {
+          color: '#FF0000',
+          lineWidth: 2
+        });
+
+        statusEl.innerText = 'Скелет обнаружен';
+      } else {
+        statusEl.innerText = 'Ищу человека...';
+      }
+
+      canvasCtx.restore();
+    });
+
+    startBtn.onclick = async () => {
+      statusEl.innerText = 'Запуск камеры...';
+
+      const camera = new Camera(videoElement, {
+        onFrame: async () => {
+          await pose.send({ image: videoElement });
+        },
+        width: 640,
+        height: 480
+      });
+
+      camera.start();
+    };
+  </script>
+
+</body>
+</html>
