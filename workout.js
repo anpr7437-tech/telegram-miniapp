@@ -10,8 +10,9 @@ let stream = null;
 let camera = null;
 let active = false;
 let reps = 0;
-let baseHipY = null;
-let state = 'up';
+
+let baseHeadY = null; // положение головы стоя
+let state = 'up'; // up | down
 
 // ===== MEDIAPIPE =====
 const pose = new Pose({
@@ -28,28 +29,28 @@ pose.setOptions({
 pose.onResults(res => {
   if (!active || !res.poseLandmarks) return;
 
-  // ЛЕВЫЙ ТАЗ
-  const hip = res.poseLandmarks[23];
+  // НОС (ГОЛОВА)
+  const nose = res.poseLandmarks[0];
 
-  // Первый кадр — запоминаем положение стоя
-  if (baseHipY === null) {
-    baseHipY = hip.y;
+  // Запоминаем положение стоя
+  if (baseHeadY === null) {
+    baseHeadY = nose.y;
     statusEl.innerText = 'Стой ровно. Начинай приседать';
     return;
   }
 
-  const diff = hip.y - baseHipY;
+  const diff = nose.y - baseHeadY;
 
-  // ПОКАЗЫВАЕМ ДВИЖЕНИЕ (для понимания)
-  statusEl.innerText = Смещение таза: ${diff.toFixed(2)};
+  // Показываем движение (чтобы ты ВИДЕЛ)
+  statusEl.innerText = Движение головы: ${diff.toFixed(2)};
 
-  // ВНИЗ
-  if (diff > 0.12 && state === 'up') {
+  // ВНИЗ (присел)
+  if (diff > 0.08 && state === 'up') {
     state = 'down';
   }
 
-  // ВВЕРХ = ПОВТОР
-  if (diff < 0.05 && state === 'down') {
+  // ВВЕРХ (засчитали)
+  if (diff < 0.03 && state === 'down') {
     reps++;
     repsEl.innerText = Повторы: ${reps};
     state = 'up';
@@ -60,7 +61,7 @@ pose.onResults(res => {
 startBtn.onclick = async () => {
   reps = 0;
   repsEl.innerText = 'Повторы: 0';
-  baseHipY = null;
+  baseHeadY = null;
   state = 'up';
   active = true;
 
