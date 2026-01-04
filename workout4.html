@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Приседания</title>
+  <title>Приседания v4</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -26,19 +26,26 @@
     }
 
     #count {
-      font-size: 42px;
-      margin: 10px 0;
+      font-size: 48px;
+      margin-top: 10px;
     }
 
     #status {
       font-size: 18px;
-      opacity: 0.8;
+      opacity: 0.9;
+      margin-bottom: 6px;
+    }
+
+    #debug {
+      font-size: 14px;
+      opacity: 0.6;
+      margin-bottom: 10px;
     }
 
     button {
       width: 85%;
       padding: 16px;
-      margin: 12px;
+      margin: 10px;
       font-size: 18px;
       border-radius: 10px;
       border: none;
@@ -55,8 +62,9 @@
 
   <div id="count">0</div>
   <div id="status">Ожидание</div>
+  <div id="debug">движение: 0</div>
 
-  <button id="start">▶ Начать</button>
+  <button id="start">▶ Начать подход</button>
 
   <canvas id="canvas" style="display:none;"></canvas>
 
@@ -65,6 +73,7 @@
     const startBtn = document.getElementById('start');
     const countEl = document.getElementById('count');
     const statusEl = document.getElementById('status');
+    const debugEl = document.getElementById('debug');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
@@ -72,12 +81,15 @@
     let active = false;
 
     let values = [];
-    const MAX_VALUES = 10;
+    const MAX_VALUES = 15;
 
     let reps = 0;
-    let phase = 'up'; // up → down → up
-    const DOWN_THRESHOLD = 1.8;
-    const UP_THRESHOLD = 0.8;
+    let phase = 'up';
+    let cooldown = 0;
+
+    // 👇 МЯГКИЕ ПОРОГИ (ВАЖНО)
+    const DOWN_THRESHOLD = 1.6;
+    const UP_THRESHOLD = 1.2;
 
     function frameDiff(a, b) {
       let diff = 0;
@@ -105,17 +117,23 @@
         const avg =
           values.reduce((a, b) => a + b, 0) / values.length;
 
-        // ЛОГИКА ПРИСЕДА
-        if (phase === 'up' && avg > DOWN_THRESHOLD) {
-          phase = 'down';
-          statusEl.innerText = '⬇ Вниз';
-        }
+        debugEl.innerText = 'движение: ' + avg.toFixed(2);
 
-        if (phase === 'down' && avg < UP_THRESHOLD) {
-          phase = 'up';
-          reps++;
-          countEl.innerText = reps;
-          statusEl.innerText = '⬆ Вверх';
+        if (cooldown > 0) {
+          cooldown--;
+        } else {
+          if (phase === 'up' && avg > DOWN_THRESHOLD) {
+            phase = 'down';
+            statusEl.innerText = '⬇ Вниз';
+          }
+
+          if (phase === 'down' && avg < UP_THRESHOLD) {
+            phase = 'up';
+            reps++;
+            countEl.innerText = reps;
+            statusEl.innerText = '⬆ Вверх';
+            cooldown = 5; // защита от двойного счёта
+          }
         }
       }
 
@@ -134,8 +152,13 @@
 
         reps = 0;
         phase = 'up';
+        values = [];
+        lastFrame = null;
+        cooldown = 0;
+
         countEl.innerText = '0';
-        statusEl.innerText = 'Начали';
+        statusEl.innerText = 'Камера включена';
+        debugEl.innerText = 'движение: 0';
 
         active = true;
         loop();
