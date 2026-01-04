@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Pose Mirror Test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- TensorFlow -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+<style>
+body {
+  margin: 0;
+  background: black;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+canvas {
+  width: 100%;
+  height: 80vh;
+  background: black;
+  /* 🔥 ЗЕРКАЛО */
+  transform: scaleX(-1);
+}
+
+button {
+  margin-top: 20px;
+  width: 90%;
+  padding: 18px;
+  font-size: 20px;
+  border-radius: 12px;
+  border: none;
+  background: #2ecc71;
+  color: black;
+}
+
+#info {
+  margin-top: 10px;
+  font-size: 18px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🧍 Тест бёдер (зеркало)</h2>
+
+<button id="start">▶ ВКЛЮЧИТЬ КАМЕРУ</button>
+
+<canvas id="canvas"></canvas>
+
+<div id="info">Ожидание...</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const info = document.getElementById('info');
+
+const video = document.createElement('video');
+video.playsInline = true;
+video.muted = true;
+
+let detector = null;
+
+async function startCamera() {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
+  await video.play();
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  detector = await poseDetection.createDetector(
+    poseDetection.SupportedModels.MoveNet,
+    { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
+  );
+
+  requestAnimationFrame(loop);
+}
+
+async function loop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Рисуем видео (уже зеркальное через CSS)
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  if (detector) {
+    const poses = await detector.estimatePoses(video);
+
+    if (poses.length > 0) {
+      const kp = poses[0].keypoints;
+
+      const leftHip = kp.find(p => p.name === 'left_hip');
+      const rightHip = kp.find(p => p.name === 'right_hip');
+
+      if (leftHip && rightHip && leftHip.score > 0.4 && rightHip.score > 0.4) {
+        drawPoint(leftHip.x, leftHip.y);
+        drawPoint(rightHip.x, rightHip.y);
+
+        info.innerText = '✅ Бёдра обнаружены';
+      } else {
+        info.innerText = '❌ Бёдра не видны';
+      }
+    } else {
+      info.innerText = '❌ Человек не найден';
+    }
+  }
+
+  requestAnimationFrame(loop);
+}
+
+function drawPoint(x, y) {
+  ctx.beginPath();
+  ctx.arc(x, y, 10, 0, Math.PI * 2);
+  ctx.fillStyle = 'red';
+  ctx.fill();
+}
+
+document.getElementById('start').onclick = () => {
+  startCamera();
+};
+</script>
+
+</body>
+</html>
