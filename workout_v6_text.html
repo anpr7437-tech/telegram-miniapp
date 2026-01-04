@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Workout v6</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+<style>
+body{
+  margin:0;
+  background:black;
+  color:white;
+  font-family:system-ui;
+  overflow:hidden;
+}
+
+/* Камера */
+canvas{
+  width:100%;
+  height:100vh;
+  object-fit:cover;
+  transform:scaleX(-1);
+}
+
+/* ТЕКСТОВОЙ СЛОЙ — БЕЗОПАСНО */
+#overlay{
+  position:fixed;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  pointer-events:none;
+}
+
+#message{
+  font-size:28px;
+  font-weight:700;
+  background:rgba(0,0,0,0.6);
+  padding:24px 28px;
+  border-radius:20px;
+  max-width:90%;
+  line-height:1.4;
+}
+
+/* Кнопка */
+button{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  width:90%;
+  padding:18px;
+  font-size:22px;
+  border-radius:14px;
+  border:none;
+  background:#2ecc71;
+  color:black;
+  z-index:10;
+}
+
+video{display:none;}
+</style>
+</head>
+
+<body>
+
+<video id="video" playsinline muted></video>
+<canvas id="canvas"></canvas>
+
+<div id="overlay">
+  <div id="message">Нажми «Начать тренировку»</div>
+</div>
+
+<button id="start">▶ НАЧАТЬ ТРЕНИРОВКУ</button>
+
+<script>
+Telegram.WebApp.expand();
+const tg = Telegram.WebApp;
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const message = document.getElementById('message');
+const startBtn = document.getElementById('start');
+
+let detector;
+let reps = 0;
+let stage = 'IDLE';
+let state = 'UP';
+let standY = null;
+let squatY = null;
+let threshold = null;
+
+startBtn.onclick = () => {
+  message.innerText = 'Подключаемся к камере…';
+  navigator.mediaDevices.getUserMedia({ video:true })
+    .then(stream => {
+      video.srcObject = stream;
+      video.play();
+      startBtn.style.display = 'none';
+
+      video.onloadedmetadata = async () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        message.innerText = 'Загружаем модель…';
+
+        detector = await poseDetection.createDetector(
+          poseDetection.SupportedModels.MoveNet,
+          { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
+        );
+
+        stage = 'STAND';
+        message.innerText = 'Встань ровно. Не двигайся 3 секунды';
+
+        setTimeout(() => {
+          stage = 'SQUAT';
+          message.innerText = 'Сделай один медленный присед';
+        }, 3000);
+
+        setTimeout(() => {
+          threshold = (standY + squatY) / 2;
+          stage = 'COUNT';
+          message.innerText = 'Начинай приседать!';
+        }, 7000);
+
+        loop();
+      };
+    })
+    .catch(() => {
+      message.innerText = 'Не удалось получить доступ к камере';
+    });
+};
+
+async function loop(){
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  const poses = await detector.estimatePoses(video);
+  if(!poses.length){ requestAnimationFrame(loop); return; }
+
+  const kp = poses[0].keypoints;
+  const lh = kp.find(p=>p.name==='left_hip');
+  const rh = kp.find(p=>p.name==='right_hip');
+  if(!lh  !rh  lh.score<0.4 || rh.score<0.4){
+    message.innerText = 'Встань во весь рост';
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  const hipY = (lh.y + rh.y) / 2;
+
+  if(stage==='STAND') standY = hipY;
+  if(stage==='SQUAT') squatY = squatY===null ? hipY : Math.max(squatY, hipY);
+
+  if(stage==='COUNT'){
+    if(state==='UP' && hipY>threshold) state='DOWN';
+    if(state==='DOWN' && hipY<threshold){
+      state='UP';
+      reps++;
+      message.innerText = Сделано приседов: ${reps};
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+tg.MainButton.setText('Завершить тренировку');
+tg.MainButton.show();
+
+tg.onEvent('mainButtonClicked',()=>{
+  const perClick = +localStorage.getItem('perClick') || 1;
+  let balance = +localStorage.getItem('balance') || 0;
+  balance += reps * perClick * 20;
+  localStorage.setItem('balance', balance);
+  window.location.href = 'game_v1.html';
+});
+</script>
+
+</body>
+</html>
