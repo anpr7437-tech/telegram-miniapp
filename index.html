@@ -181,36 +181,28 @@
   }
 
   function updateUI() {
-    balanceSpan.innerText = balance;
-    perClickSpan.innerText = perClick;
-    reward.innerText = perClick * 20;
-    currentValue.innerText = perClick;
-    nextValue.innerText = perClick + 1;
-    upgradePriceSpan.innerText = upgradePrice;
-    buyUpgrade.disabled = balance < upgradePrice;
+    document.getElementById('balance').innerText = balance;
+    document.getElementById('perClick').innerText = perClick;
+    document.getElementById('reward').innerText = perClick * 20;
+    document.getElementById('currentValue').innerText = perClick;
+    document.getElementById('nextValue').innerText = perClick + 1;
+    document.getElementById('upgradePrice').innerText = upgradePrice;
+    document.getElementById('buyUpgrade').disabled = balance < upgradePrice;
+
     if (taskDone) {
-      taskBtn.innerText = 'Выполнено';
-      taskBtn.disabled = true;
+      const btn = document.getElementById('taskBtn');
+      btn.innerText = 'Выполнено';
+      btn.disabled = true;
     }
   }
 
-  // ссылки на элементы
-  const balanceSpan = document.getElementById('balance');
-  const perClickSpan = document.getElementById('perClick');
-  const reward = document.getElementById('reward');
-  const currentValue = document.getElementById('currentValue');
-  const nextValue = document.getElementById('nextValue');
-  const upgradePriceSpan = document.getElementById('upgradePrice');
-  const buyUpgrade = document.getElementById('buyUpgrade');
-  const taskBtn = document.getElementById('taskBtn');
-
-  // ▶ ТРЕНИРОВКА
+  // ▶ НАЧАТЬ ТРЕНИРОВКУ
   document.getElementById('startTraining').onclick = () => {
-    tg.openLink('workout.html');
+    tg.openLink('workoutfinal.html');
   };
 
   // ⚡ ПРОКАЧКА
-  buyUpgrade.onclick = () => {
+  document.getElementById('buyUpgrade').onclick = () => {
     if (balance >= upgradePrice) {
       balance -= upgradePrice;
       perClick++;
@@ -221,7 +213,7 @@
   };
 
   // 🎯 ЗАДАНИЕ
-  taskBtn.onclick = () => {
+  document.getElementById('taskBtn').onclick = () => {
     if (!taskDone) {
       balance += 100;
       taskDone = true;
