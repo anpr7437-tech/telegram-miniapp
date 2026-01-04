@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Entry v3</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+body{
+  margin:0;
+  background:#0b0b12;
+  color:white;
+  font-family:system-ui;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+button{
+  padding:22px 34px;
+  font-size:22px;
+  border-radius:14px;
+  border:none;
+  background:#2ecc71;
+  color:black;
+}
+</style>
+</head>
+
+<body>
+
+<button onclick="go()">▶ Войти в игру</button>
+
+<script>
+Telegram.WebApp.expand();
+function go(){
+  window.location.href = 'game_v1.html';
+}
+</script>
+
+</body>
+</html>
