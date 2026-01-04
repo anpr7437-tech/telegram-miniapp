@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Workout</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+<style>
+body {
+  margin:0;
+  background:black;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
+canvas {
+  width:100%;
+  height:70vh;
+  transform:scaleX(-1);
+}
+button {
+  width:90%;
+  padding:18px;
+  font-size:20px;
+  border-radius:12px;
+  border:none;
+  background:#2ecc71;
+  color:black;
+  margin:10px;
+}
+#status { font-size:20px; min-height:40px; }
+#count { font-size:56px; }
+video { display:none; }
+</style>
+</head>
+
+<body>
+
+<h2>🏋️ Приседания</h2>
+
+<button id="start">▶ НАЧАТЬ</button>
+
+<video id="video" playsinline muted></video>
+<canvas id="canvas"></canvas>
+
+<div id="count">0</div>
+<div id="status">Нажми «Начать»</div>
+
+<script>
+Telegram.WebApp.expand();
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const status = document.getElementById('status');
+const countEl = document.getElementById('count');
+const startBtn = document.getElementById('start');
+
+let detector;
+let reps = 0;
+let stage = 'IDLE';
+let state = 'UP';
+
+let standY = null;
+let squatY = null;
+let threshold = null;
+
+// 🔥 КНОПКА — ТОЛЬКО КАМЕРА
+startBtn.onclick = () => {
+  navigator.mediaDevices.getUserMedia({ video:true })
+    .then(stream => {
+      video.srcObject = stream;
+      video.play();
+
+      startBtn.style.display = 'none';
+      status.innerText = 'Камера включена';
+
+      video.onloadedmetadata = async () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        detector = await poseDetection.createDetector(
+          poseDetection.SupportedModels.MoveNet,
+          { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
+        );
+
+        stage = 'STAND';
+        setTimeout(() => stage = 'SQUAT', 3000);
+        setTimeout(() => {
+          threshold = (standY + squatY) / 2;
+          stage = 'COUNT';
+        }, 7000);
+
+        loop();
+      };
+    })
+    .catch(e => {
+      alert('КАМЕРА НЕ ДАЛАСЬ');
+      console.error(e);
+    });
+};
+
+async function loop() {
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const poses = await detector.estimatePoses(video);
+  if (!poses.length) {
+    status.innerText = 'Встань во весь рост';
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  const kp = poses[0].keypoints;
+  const lh = kp.find(p => p.name === 'left_hip');
+  const rh = kp.find(p => p.name === 'right_hip');
+
+  if (!lh  !rh  lh.score < 0.4 || rh.score < 0.4) {
+    status.innerText = 'Не вижу бёдра';
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  const hipY = (lh.y + rh.y) / 2;
+
+  if (stage === 'STAND') {
+    status.innerText = 'Встань ровно';
+    standY = hipY;
+  }
+
+  if (stage === 'SQUAT') {
+    status.innerText = 'Сделай один присед';
+    squatY = squatY === null ? hipY : Math.max(squatY, hipY);
+  }
+
+  if (stage === 'COUNT') {
+    status.innerText = 'Приседай';
+    if (state === 'UP' && hipY > threshold) state = 'DOWN';
+    if (state === 'DOWN' && hipY < threshold) {
+      state = 'UP';
+      reps++;
+      countEl.innerText = reps;
+    }
+  }
+
+  requestAnimationFrame(loop);
+}
+</script>
+
+</body>
+</html>
