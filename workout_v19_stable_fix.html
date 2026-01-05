@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Workout v19</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+<style>
+body {
+  margin: 0;
+  background: black;
+  color: white;
+  font-family: system-ui;
+  overflow: hidden;
+}
+video {
+  display: none;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+#loading {
+  position: fixed;
+  inset: 0;
+  background: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 32px;
+  font-weight: 800;
+}
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+#box {
+  background: rgba(0,0,0,0.75);
+  padding: 32px;
+  border-radius: 24px;
+  text-align: center;
+}
+#text {
+  font-size: 30px;
+  font-weight: 800;
+  white-space: pre-line;
+}
+#counter {
+  font-size: 64px;
+  margin-top: 12px;
+}
+button {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  padding: 18px;
+  font-size: 22px;
+  border-radius: 16px;
+  border: none;
+  background: #2ecc71;
+  color: black;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div id="loading">Подключаемся к камере…</div>
+
+<video id="video" playsinline muted></video>
+
+<div id="overlay">
+  <div id="box">
+    <div id="text"></div>
+    <div id="counter">0</div>
+  </div>
+</div>
+
+<button id="start">▶ НАЧАТЬ ТРЕНИРОВКУ</button>
+
+<script>
+const video = document.getElementById('video');
+const loading = document.getElementById('loading');
+const overlay = document.getElementById('overlay');
+const text = document.getElementById('text');
+const counter = document.getElementById('counter');
+const startBtn = document.getElementById('start');
+
+let detector;
+let reps = 0;
+
+let phase = 'PREP';
+let baseY = null;
+let lastHipY = null;
+let stableFrames = 0;
+
+let state = 'UP';
+let cooldown = 0;
+
+const STABLE_DELTA = 15;          // 🔥 УВЕЛИЧЕН ДОПУСК
+const STABLE_FRAMES = 45;         // ~1.5 сек
+const DOWN_OFFSET = 25;
+const UP_OFFSET = 10;
+const COOLDOWN_MS = 700;
+
+startBtn.onclick = async () => {
+  startBtn.style.display = 'none';
+
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
+  video.play();
+
+  video.onplaying = async () => {
+    loading.style.display = 'none';
+    video.style.display = 'block';
+    overlay.style.display = 'flex';
+
+    text.innerText =
+      'Встань во весь рост\n' +
+      'И подожди 3–5 секунд';
+
+    detector = await poseDetection.createDetector(
+      poseDetection.SupportedModels.MoveNet,
+      { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
+    );
+
+    requestAnimationFrame(loop);
+  };
+};
+
+function loop(ts) {
+  detector.estimatePoses(video).then(poses => {
+    if (!poses.length) {
+      requestAnimationFrame(loop);
+      return;
+    }
+
+    const kp = poses[0].keypoints;
+    const lh = kp.find(p => p.name === 'left_hip');
+    const rh = kp.find(p => p.name === 'right_hip');
+    if (!lh || !rh || lh.score < 0.4 || rh.score < 0.4) {
+      requestAnimationFrame(loop);
+      return;
+    }
+
+    const hipY = (lh.y + rh.y) / 2;
+
+    // ---- КАЛИБРОВКА ----
+    if (phase === 'PREP') {
+      if (baseY === null) baseY = hipY;
+      baseY = baseY * 0.9 + hipY * 0.1;
+
+      if (lastHipY !== null && Math.abs(hipY - lastHipY) < STABLE_DELTA) {
+        stableFrames++;
+      } else {
+        stableFrames = 0;
+      }
+
+      if (stableFrames >= STABLE_FRAMES) {
+        phase = 'TEST';
+        text.innerText = 'Отлично 👍\nСделай 1 тестовый присед';
+      }
+
+      lastHipY = hipY;
+      requestAnimationFrame(loop);
+      return;
+    }
+
+    // ---- СЧЁТ ----
+    if (state === 'UP' && hipY > baseY + DOWN_OFFSET) {
+      state = 'DOWN';
+    }
+    else if (state === 'DOWN' && hipY < baseY + UP_OFFSET) {
+      reps++;
+      counter.innerText = reps;
+      text.innerText = 'Можешь продолжать 💪';
+      state = 'COOLDOWN';
+      cooldown = ts;
+    }
+    else if (state === 'COOLDOWN' && ts - cooldown > COOLDOWN_MS) {
+      state = 'UP';
+    }
+
+    requestAnimationFrame(loop);
+  });
+}
+</script>
+
+</body>
+</html>
