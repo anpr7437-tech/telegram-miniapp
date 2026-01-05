@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Workout Telegram Mini App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Telegram API -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<!-- TensorFlow -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+<style>
+body {
+  margin: 0;
+  background: black;
+  color: white;
+  font-family: system-ui;
+  overflow: hidden;
+}
+video {
+  display: none;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+#loadingScreen {
+  position: fixed;
+  inset: 0;
+  background: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+#loadingText {
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+}
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+#box {
+  background: rgba(0,0,0,0.75);
+  padding: 32px;
+  border-radius: 24px;
+  text-align: center;
+}
+#text {
+  font-size: 26px;
+  font-weight: 800;
+  white-space: pre-line;
+}
+#counter {
+  font-size: 64px;
+  margin-top: 16px;
+}
+#startBtn {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  padding: 20px;
+  font-size: 22px;
+  border-radius: 16px;
+  border: none;
+  background: #2ecc71;
+  color: black;
+  font-weight: bold;
+}
+#finishBtn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: none;
+  background: #ff5c5c;
+  color: white;
+  font-weight: bold;
+  display: none;
+}
+</style>
+</head>
+
+<body>
+<div id="loadingScreen">
+  <div id="loadingText">Подключаемся к камере…</div>
+</div>
+
+<video id="video" playsinline muted></video>
+
+<div id="overlay">
+  <div id="box">
+    <div id="text"></div>
+    <div id="counter">0</div>
+  </div>
+</div>
+
+<button id="startBtn">🔌 ПОДКЛЮЧИТЬ КАМЕРУ</button>
+<button id="finishBtn">Закончить</button>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.expand();
+
+/* НАГРАДЫ */
+const COINS_PER_SQUAT = 20;
+let earnedCoins = 0;
+
+/* ЭЛЕМЕНТЫ */
+const video = document.getElementById('video');
+const loadingScreen = document.getElementById('loadingScreen');
+const overlay = document.getElementById('overlay');
+const text = document.getElementById('text');
+const counterEl = document.getElementById('counter');
+const startBtn = document.getElementById('startBtn');
+const finishBtn = document.getElementById('finishBtn');
+
+let detector;
+let reps = 0;
+let baseY = null;
+let stableFrames = 0;
+let lastHipY = null;
+let phase = 'PREP';
+let state = 'UP';
+let cooldownTime = 0;
+
+const DOWN_OFFSET = 25;
+const UP_OFFSET = 10;
+const COOLDOWN_MS = 700;
+const STABLE_DELTA = 6;
+const STABLE_FRAMES_REQUIRED = 60;
+
+startBtn.onclick = async () => {
+  startBtn.style.display = 'none';
+
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
+  video.play();
+
+  video.onplaying = async () => {
+    loadingScreen.style.display = 'none';
+    video.style.display = 'block';
+    overlay.style.display = 'flex';
+    finishBtn.style.display = 'block';
+
+    text.innerText =
+      'Поставь телефон так,\nчтобы тебя было видно полностью\nПодожди 3–5 секунд';
+
+    detector = await poseDetection.createDetector(
+      poseDetection.SupportedModels.MoveNet,
+      { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
+    );
+
+    requestAnimationFrame(loop);
+  };
+};
+
+function loop(ts) {
+  detector.estimatePoses(video).then(poses => {
+    if (!poses.length) return requestAnimationFrame(loop);
+
+    const kp = poses[0].keypoints;
+    const lh = kp.find(p => p.name === 'left_hip');
+    const rh = kp.find(p => p.name === 'right_hip');
+
+    if (!lh || !rh || lh.score < 0.4 || rh.score < 0.4)
+      return requestAnimationFrame(loop);
+
+    const hipY = (lh.y + rh.y) / 2;
+
+    if (phase === 'PREP') {
+      if (baseY === null) baseY = hipY;
+      baseY = baseY * 0.95 + hipY * 0.05;
+
+      if (lastHipY !== null && Math.abs(hipY - lastHipY) < STABLE_DELTA)
+        stableFrames++;
+      else stableFrames = 0;
+
+      if (stableFrames >= STABLE_FRAMES_REQUIRED) {
+        phase = 'TEST';
+        text.innerText = 'Отлично 👍\nСделай 1 тестовый присед';
+      }
+
+      lastHipY = hipY;
+      return requestAnimationFrame(loop);
+    }
+
+    if (state === 'UP' && hipY > baseY + DOWN_OFFSET) state = 'DOWN';
+    else if (state === 'DOWN' && hipY < baseY + UP_OFFSET) {
+      reps++;
+      earnedCoins += COINS_PER_SQUAT;
+      counterEl.innerText = reps;
+
+      if (phase === 'TEST') {
+        phase = 'TRAIN';
+        text.innerText = 'Поехали! 💪';
+      }
+
+      state = 'COOLDOWN';
+      cooldownTime = ts;
+    }
+    else if (state === 'COOLDOWN' && ts - cooldownTime > COOLDOWN_MS)
+      state = 'UP';
+
+    requestAnimationFrame(loop);
+  });
+}
+
+finishBtn.onclick = () => {
+  tg.sendData(JSON.stringify({
+    reps,
+    coins: earnedCoins
+  }));
+  tg.close();
+};
+</script>
+</body>
+</html>
